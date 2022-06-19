@@ -1,18 +1,18 @@
 <!-- Change this to use a picture in the root directory. Not the bmp -->
-<img src="https://media.discordapp.net/attachments/985697633932820530/988109235596455946/newtrodit_icon_1024x1024-removebg.png?width=381&height=381" align="right" width="100" height="100" />
+<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/logo_transp.png" align="right" width="100" height="100" />
 
 #### [❔ About](https://github.com/anic17/Newtrodit-LCL#about) - [💡 Features](https://github.com/anic17/Newtrodit-LCL#features) - [📖 Requirments](https://github.com/anic17/Newtrodit-LCL#requirements) - [🔨 Build](https://github.com/anic17/Newtrodit-LCL#build)
 
 # Newtrodit-LCL
-Official Newtrodit-LCL repo, all code is under the GNU GPL3.0 licence see [LICENCE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL3.0](https://google) for more info!
+Official Newtrodit-LCL repo, all code is under the GNU GPL3.0 licence see [LICENCE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
 # About
 Newtrodit is a Windows and Linux supported text editor that was developed with the c language.
 
 ## Motives
-&emsp;I once tried to make a clone of the old MS-DOS [EDIT.COM]() in batch. Though during the making of it I realized something. It would be **really** complicated to use batch, and performance issues were starting to appear.
+&emsp;I once tried to make a clone of the old MS-DOS [EDIT.COM](https://en.wikipedia.org/wiki/MS-DOS_Editor) in batch. Though during the making of it I realized something. It would be **really** complicated to use batch, and performance issues were starting to appear.
 
-As I was quite new to C, creating Newtodit was a challenge to see how good I could make an MS-DOS clone with more features. The UI got changed plenty of times —it even had a blue background once— until it became what it is now. I started to love coding Newtrodit, and that's why today I'm continuing to develop Newtrodit to this day.
+As I was quite new to C, creating Newtodit was a challenge to see how good I could make an EDIT.COM clone with more features. The UI got changed plenty of times —it even had a blue background once— until it became what it is now. I started to love coding Newtrodit, and that's why today I'm continuing to develop Newtrodit to this day.
 
 # Features
 - Fast and light
