@@ -1,10 +1,10 @@
 <!-- Change this to use a picture in the root directory. Not the bmp -->
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/logo_transp.png" align="right" width="100" height="100" />
 
-#### [❔ About](https://github.com/anic17/Newtrodit-LCL#about) - [💡 Features](https://github.com/anic17/Newtrodit-LCL#features) - [📖 Requirments](https://github.com/anic17/Newtrodit-LCL#requirements) - [🔨 Build](https://github.com/anic17/Newtrodit-LCL#build)
+#### [❔ About](https://github.com/anic17/Newtrodit-LCL#about) - [💡 Features](https://github.com/anic17/Newtrodit-LCL#features) - [📖 Requirements](https://github.com/anic17/Newtrodit-LCL#requirements) - [🔨 Build](https://github.com/anic17/Newtrodit-LCL#build)
 
 # Newtrodit-LCL
-Official Newtrodit-LCL repo, all code is under the GNU GPL3.0 licence see [LICENCE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
+Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under the GNU GPL v3.0 licence see [LICENSE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
 # About
 Newtrodit is a Windows and Linux supported text editor that was developed using the C programming language.
