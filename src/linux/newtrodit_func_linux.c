@@ -1125,6 +1125,7 @@ void ErrorExit(char *s)
 
 int GetNewtroditInput(File_info *tstack)
 {
+/*
 	HANDLE hStdin, hStdout;
 	DWORD fdwSaveOldMode;
 	DWORD cNumRead, fdwMode, i;
@@ -1285,4 +1286,5 @@ int GetNewtroditInput(File_info *tstack)
 	}
 
 	return 0;
+*/
 }

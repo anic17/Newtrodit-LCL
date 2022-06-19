@@ -39,10 +39,10 @@
 #include <fcntl.h> // _setmode, _fileno
 #include <wchar.h> // For UTF-8 support
 
-struct FILETIME_ {
-  unsigned int fwrite_time;
-  unsigned int fread_time;
-} FILETIME;
+struct FILETIME {
+  unsigned int dwHighDateTime;
+  unsigned int dwLowDateTime;
+} FILETIME_;
 
 /* ================================= SETTINGS ==================================== */
 #define DEBUG_MODE 1
@@ -599,6 +599,24 @@ char *strncpy_n(char *dest, const char *src, size_t count) {
   return NULL;
 }
 
+/* ? */
+size_t strrpbrk(char *s, char *find) // Reverse strpbrk, just like strrchr but for multiple characters
+{
+	size_t findlen = strlen(find);
+	size_t slen = strlen(s);
+	for (size_t i = slen; i > 0; i--)
+	{
+		for (size_t j = 0; j < findlen; j++)
+		{
+			if (s[i - 1] == find[j])
+			{
+				return i - 1;
+			}
+		}
+	}
+	return 0;
+}
+
 /* Find a needle in a haystack.
  *
  * Search a string for a sub-string
@@ -813,6 +831,12 @@ char *StringToJSON(char *s) {
 /* ========================= END OF STRING MANIPULATION ========================== */
 
 /* =================================== SYSTEM ==================================== */
+
+/* Checks the physical state of a key (Pressed or not pressed) */
+int CheckKey(int keycode)
+{
+  return 0;
+}
 
 /* Get absolute path to a file on the drive */
 char *FullPath(char *file) {
