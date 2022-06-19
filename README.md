@@ -7,7 +7,7 @@
 Official Newtrodit-LCL repo, all code is under the GNU GPL3.0 licence see [LICENCE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
 # About
-Newtrodit is a Windows and Linux supported text editor that was developed with the c language.
+Newtrodit is a Windows and Linux supported text editor that was developed using the C programming language.
 
 ## Motives
 &emsp;I once tried to make a clone of the old MS-DOS [EDIT.COM](https://en.wikipedia.org/wiki/MS-DOS_Editor) in batch. Though during the making of it I realized something. It would be **really** complicated to use batch, and performance issues were starting to appear.
@@ -24,14 +24,20 @@ As I was quite new to C, creating Newtodit was a challenge to see how good I cou
    - ROT13 encoding
    - Uppercase/lowercase conversion
 - Fully configurable syntax highlighting including custom rules
+- Built-in manual
+- Mouse support
+- Some file utilities:
+   - File compare
+   - File locating
 
 # Requirements
-*requirements here, don't currently know what they are yet...*
+
+Newtrodit doesn't need any special requirements, it can run on Windows versions starting from Windows XP to Windows 11, and on any recent Linux system.
 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
 
-*talk on how to use them here*
+Run [`make.bat`](main/make.bat) if you're Windows, or [`make.sh`](main/make.sh)if you're using a Linux system. 
 
 # Contributing
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
@@ -44,13 +50,14 @@ Don't forget to give the project a star! Thanks again!
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+# Contact
+
+You can join the Program Dream Discord server here and talk about everything related to Newtrodit.
+<a href="https://discord.gg/J628dBqQgb"><img src="https://img.shields.io/discord/728958932210679869"></a>
 
 ## Credits
 Thanks to all the contributers who helped make Newtrodit possible!
 
-* [anic17](https://github.com/anic17)       
-
+* [anic17](https://github.com/anic17)
+* [ZackeryRSmith](https://github.com/ZackeryRSmith)
 * [timlg07](https://github.com/timlg07)
-
-* [ZackeryRSmith](https://github.com/ZackeryRSmith) 
-
