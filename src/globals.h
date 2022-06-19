@@ -18,7 +18,7 @@
 */
 
 const char newtrodit_version[] = "0.6";
-const char newtrodit_build_date[] = "18/4/2022";
+const char newtrodit_build_date[] = "15/6/2022";
 const char newtrodit_repository[] = "https://github.com/anic17/Newtrodit";
 char manual_file[MAX_PATH] = "newtrodit.man";
 char settings_file[MAX_PATH] = "newtrodit.config";
@@ -51,9 +51,11 @@ int partialMouseSupport = true; // Partial mouse support, only changes cursor po
 int showMillisecondsInTime = false; // Show milliseconds in time insert function (F6)
 int useLogFile = true;
 int createNewLogFiles = false; // Create new log files when logging is enabled
+int RGB24bit = false; // Use 24-bit RGB instead of 4-bit colors
 
 
-int bpsPairHighlight = false; // Defining this as a global rather than a local variable to make it easier to change settings in different tabs
+
+int bpsPairHighlight = false; // Use BPS pair highlighting (bugged)
 
 int bps_pair_colors[] = {0x5, 0xb, 0xd, 0x6, 0xc, 0xe, 0x8, 0xf, 0x9}; // Brackets, parenthesis and square brackets colors
 char bps_chars_open[10][3] = {"(", "{", "["};                          // Allocate 10 chars for each char array to support new syntax
@@ -104,11 +106,12 @@ char *run_macro, *last_known_exception;
 #define DEFAULT_NUM_COLOR 0x2     // Dark green
 #define DEFAULT_CAPITAL_COLOR 0xc // Red
 #define DEFAULT_CAPITAL_MIN_LEN 3 // Highlight capital words 3 or more characters long
+#define DEFAULT_LINECOUNT_COLOR 0x80
 
 #define SEPARATORS DEFAULT_SEPARATORS
 
 char syntax_separators[512] = SEPARATORS;
-char syntax_filename[MAX_PATH] = "";
+char syntax_filename[_MAX_PATH] = "";
 
 int default_color = DEFAULT_SYNTAX_COLOR;
 int comment_color = DEFAULT_COMMENT_COLOR;
@@ -116,6 +119,7 @@ int quote_color = DEFAULT_QUOTE_COLOR;
 int num_color = DEFAULT_NUM_COLOR;
 int capital_color = DEFAULT_CAPITAL_COLOR;
 int capital_min_len = DEFAULT_CAPITAL_MIN_LEN;
+int linecount_color = DEFAULT_LINECOUNT_COLOR;
 int capitalMinEnabled = true;
 int singleQuotes = false;
 
@@ -264,4 +268,49 @@ struct
     {"//", 0x8},
     {"/*", 0x8},
     {"*/", 0x8},
+};
+
+
+typedef struct theme
+{
+    int bg_color;
+    int fg_color;
+    int syntax_color;
+    int comment_color;
+    int quote_color;
+    int num_color;
+    int capital_color;
+    int capital_min_len;
+    int single_quotes;
+    int capital_min_enabled;
+
+    int linecount_color;    
+} theme_t;
+
+theme_t themedark = {
+    .bg_color = 0,
+    .fg_color = 0x7,
+    .syntax_color = 0x7,
+    .comment_color = 0x8,
+    .quote_color = 0xe,
+    .num_color = 0x2,
+    .capital_color = 0x1,
+    .capital_min_len = 3,
+    .single_quotes = false,
+    .capital_min_enabled = true,
+    .linecount_color = 0x07,
+};
+
+theme_t themelight = {
+    .bg_color = 0x7,
+    .fg_color = 0x0,
+    .syntax_color = 0x7,
+    .comment_color = 0x8,
+    .quote_color = 0x6,
+    .num_color = 0x2,
+    .capital_color = 0x1,
+    .capital_min_len = 3,
+    .single_quotes = false,
+    .capital_min_enabled = true,
+    .linecount_color = 0x07,
 };
