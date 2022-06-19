@@ -8,11 +8,11 @@ Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under
 
 
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png">
-<p class="main-screenshot"><em>Default Newtrodit theme</em></p>
+<p><em><sup>Default Newtrodit theme</sup></em></p></br>
 
 
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_dark.png">
-<p class="dark-linecount"><em>Dark line counting theme</em></p>
+<p><em><sup>Dark line counting theme</sup></em></p>
 
 
 # About
