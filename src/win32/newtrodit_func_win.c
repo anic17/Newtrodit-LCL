@@ -626,28 +626,49 @@ void FunctionAborted(File_info *tstack)
 	return;
 }
 
-int UpdateScrolledScreen(int linecount, File_info *tstack)
+
+/* TODO: There are too many functions for updating scroll, remove 2 of them */
+int UpdateScrolledScreen(File_info *tstack)
 {
-	if (tstack->ypos >= (YSIZE - 3) || horizontalScroll > 0)
+	if (tstack->ypos >= (YSIZE - 3) || horizontalScroll > 0 || tstack->scrolled_y)
 	{
 		ClearPartial((lineCount ? (tstack->linecount_wide) : 0), 1, XSIZE - (lineCount ? (tstack->linecount_wide) : 0), YSCROLL);
-		// ClearPartial(LINECOUNT_WIDE - 1 > 0 ? LINECOUNT_WIDE - 1 : LINECOUNT_WIDE, 1, XSIZE - (LINECOUNT_WIDE - 1 > 0 ? LINECOUNT_WIDE - 1 : LINECOUNT_WIDE), YSCROLL); // Check if the linecount is too short
 		DisplayFileContent(&Tab_stack[file_index], stdout, 0);
+		c = -32; // -32 means that the screen has been scrolled
 		return 1;
 	}
 	return 0;
 }
 
-int UpdateHomeScrolledScreen(int linecount, File_info *tstack)
+int UpdateHomeScrolledScreen(File_info *tstack)
 {
 	if (tstack->ypos >= (YSIZE - 3))
 	{
 		tstack->ypos = 1;
 		ClearPartial(0, 1, XSIZE, YSCROLL);
 		DisplayFileContent(tstack, stdout, 0);
+		c = -32; // -32 means that the screen has been scrolled
 		return 1;
 	}
 	return 0;
+}
+
+int RedrawScrolledScreen(File_info *tstack, int yps)
+{
+	if (!UpdateScrolledScreen(tstack))
+	{
+		if (!tstack->scrolled_y && yps <= YSCROLL)
+
+		{
+			ClearPartial((lineCount ? (tstack->linecount_wide) : 0), 1, XSIZE - (lineCount ? (tstack->linecount_wide) : 0), YSCROLL);
+			DisplayFileContent(&Tab_stack[file_index], stdout, 0);
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	return 1;
 }
 
 char *TypingFunction(int min_ascii, int max_ascii, int max_len)
@@ -926,34 +947,32 @@ int SetDisplayY(File_info *tstack)
 	return tstack->display_y;
 }
 
-int SetYFromDisplayY(File_info *tstack, int disp_y, int *current_y, int *current_disp)
+int SetYFromDisplayY(File_info *tstack, int disp_y)
 {
 	// Get the line number from the display line number
 	int return_y = 0;
-	if (disp_y > tstack->display_y)
+	if (tstack->scrolled_y)
 	{
-		return_y = disp_y + (*current_y - *current_disp);
+
+		return_y = tstack->ypos - (tstack->display_y - disp_y);
+		if (return_y < YSCROLL)
+		{
+			tstack->scrolled_y = false;
+		}
 	}
 	else
 	{
 		return_y = disp_y;
 	}
+	if (return_y < 1)
+	{
+		return_y = 1;
+	}
+
+	tstack->ypos = return_y;
+	return return_y;
 }
 
-
-int GetYFromTopMostLine(File_info *tstack)
-{
-	int y = 0;
-	if (tstack->scrolled_y)
-	{
-		y = tstack->ypos-YSCROLL;
-	}
-	else
-	{
-		y = tstack->ypos;
-	}
-	return y;
-}
 
 void SetDisplayCursorPos(File_info *tstack)
 {
@@ -973,81 +992,6 @@ void SetDisplayCursorPos(File_info *tstack)
 		gotoxy(wrapSize + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y);
 	}
 }
-/* void ResizeEventProc() // WARNING: This function doesn't work properly due to multithreading issues
-{
-	DWORD cNumRead, fdwMode, i, counter, fdwSaveOldMode;
-	INPUT_RECORD irInBuf;
-	CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-	// Get the standard input handle.
-	HANDLE hStdin, hStdout;
-	hStdin = GetStdHandle(STD_INPUT_HANDLE);
-	hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	GetConsoleScreenBufferInfo(hStdout, &csbi);
-
-	int new_x_size = 0, new_y_size = 0, n = 0;
-	// Save the current input mode, to be restored on exit.
-
-	GetConsoleMode(hStdin, &fdwSaveOldMode);
-
-	// Enable the window and mouse input events.
-
-	SetConsoleMode(hStdin, fdwSaveOldMode | ENABLE_WINDOW_INPUT);
-
-	// Loop to read and handle the next 100 input events.
-
-	while (1)
-	{
-		int old_x_size = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-		int old_y_size = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-		WaitForSingleObject(hStdin, INFINITE);
-
-		GetNumberOfConsoleInputEvents(hStdin, &counter);
-		if (counter >= 1 && !PeekConsoleInput(hStdin, &irInBuf, 1, &cNumRead))
-		{
-			printf("PeekConsoleInput failed - (%d)\n", GetLastError());
-			return;
-		}
-		FlushConsoleInputBuffer(hStdin);
-		if (allowAutomaticResizing)
-		{
-
-			GetConsoleScreenBufferInfo(hStdout, &csbi);
-			new_x_size = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-			new_y_size = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-
-			if ((old_x_size != new_x_size || old_y_size != new_y_size))
-			{
-				/* printf("%d:%d %d:%d\n", old_x_size, new_x_size, old_y_size, new_y_size);
-				Sleep(1000);
-				if (ValidSize()) // At 3 message boxes, close the program
-				{
-					SetConsoleSize(old_x_size, old_y_size);
-				}
-				else
-				{
-					SetConsoleSize(new_x_size, new_y_size);
-					old_x_size = new_x_size;
-					old_y_size = new_y_size; // Routine to resize the console window and adapt the current screen buffer size to the new console size.
-				}
-
-				// printf("Console size changed from %dx%d to %dx%d\n", old_x_size, old_y_size, new_x_size, new_y_size);
-				SetConsoleSize(new_x_size, new_y_size);
-				LoadAllNewtrodit();
-				DisplayFileContent(&Tab_stack[file_index], stdout, 0);
-				DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
-
-				SetDisplayY(&Tab_stack[file_index]);
-				SetDisplayCursorPos(&Tab_stack[file_index]);
-			}
-		}
-	}
-
-	SetConsoleMode(hStdin, fdwSaveOldMode);
-
-	return;
-} */
 
 int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char **matching)
 {
@@ -1059,62 +1003,6 @@ int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char *
 	}
 	// Use Levenshtein distance to find the matching strings
 }
-
-/* int main()
-{
-
-HANDLE hConsoleInput = GetStdHandle(STD_INPUT_HANDLE);
-		INPUT_RECORD buf;
-		PINPUT_RECORD lpBuffer = &buf;
-		DWORD nLength = 1;
-		DWORD nNumberOfEventsRead;
-		int key, x, y, button;
-
-		while (1)
-		{
-			WaitForSingleObject(hConsoleInput, INFINITE);
-			if (PeekConsoleInput(hConsoleInput, lpBuffer, nLength, &nNumberOfEventsRead) == 0)
-			{
-				return EXIT_FAILURE;
-			}
-			if (buf.EventType == MOUSE_EVENT) // Mouse event
-			{
-
-					x = buf.Event.MouseEvent.dwMousePosition.X;
-					y = buf.Event.MouseEvent.dwMousePosition.Y;
-					button = buf.Event.MouseEvent.dwButtonState;
-					printf("%d:%d:%d", x, y, button);
-					break;
-
-
-
-
-			}
-		}
- */
-
-/* VOID MouseEventProc(MOUSE_EVENT_RECORD mer)
-{
-	int x, y, button;
-#ifndef MOUSE_HWHEELED
-#define MOUSE_HWHEELED 0x0008
-#endif
-	printf("Mouse event: ");
-
-	if (buf.EventType.MouseEvent.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED)
-	{
-		x = buf.EventType.MouseEvent.dwMousePosition.X;
-		y = buf.EventType.MouseEvent.dwMousePosition.Y;
-		if (x < XSIZE && y < YSIZE && x < Tab_stack[file_index].bufx && y < Tab_stack[file_index].bufy && Tab_stack[file_index].strsave[y][x] != '\0')
-		{
-			Tab_stack[file_index].xpos = x;
-			Tab_stack[file_index].ypos = y;
-			ShowBottomMenu();
-			DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
-			SetDisplayCursorPos(&Tab_stack[file_index]);
-		}
-	}
-} */
 
 void ErrorExit(char *s)
 {
@@ -1134,18 +1022,15 @@ int GetNewtroditInput(File_info *tstack)
 	COORD oldSize = {0}, newSize = {0};
 	// Get the standard input handle.
 
-	int counter = 0;
-	int x = 0, y = 0, button = 0, scroll_direction = 0;
+	int x = 0, y = 0, old_ypos = 1;
 
-	int top_line_num_disp = (tstack->ypos - GetConsoleInfo(YCURSOR) <= 0) ? 1 : tstack->ypos - GetConsoleInfo(YCURSOR);
-	int bottom_line_num_disp = (tstack->ypos - GetConsoleInfo(YCURSOR) + GetConsoleInfo(YSIZE) >= tstack->bufy) ? tstack->bufy : tstack->ypos - GetConsoleInfo(YCURSOR) + GetConsoleInfo(YSIZE);
 	// Get the standard input handle.
 
 	hStdin = GetStdHandle(STD_INPUT_HANDLE), hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (hStdin == INVALID_HANDLE_VALUE || hStdout == INVALID_HANDLE_VALUE)
 	{
-		ErrorExit("GetStdHandle");
-		return 0;
+		PrintBottomString(NEWTRODIT_ERROR_CONSOLE_HANDLE);
+		return -1;
 	}
 	GetConsoleScreenBufferInfo(hStdout, &csbi);
 
@@ -1185,7 +1070,6 @@ int GetNewtroditInput(File_info *tstack)
 					if ((oldSize.X != newSize.X || oldSize.Y != newSize.Y))
 					{
 
-						// printf("%d:%d %d:%d\n", oldSize.X, new_x_size, old_y_size, new_y_size);
 						if (ValidSize()) // At 3 message boxes, close the program
 						{
 							SetConsoleSize(oldSize.X, oldSize.Y);
@@ -1218,19 +1102,18 @@ int GetNewtroditInput(File_info *tstack)
 					{
 						if (!(irInBuffer[i].Event.MouseEvent.dwButtonState & 0x80000000)) // Up
 						{
-
 							if (tstack->ypos >= 1 && tstack->strsave[tstack->ypos][0] != '\0')
 							{
 								(tstack->ypos - scrollRate > 1) ? (tstack->ypos -= scrollRate) : (tstack->ypos = 1);
 								if (tstack->last_pos_scroll == -1)
 								{
-									tstack->xpos = nolflen(tstack->strsave[tstack->ypos]);
+									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 								}
-								if (tstack->xpos > nolflen(tstack->strsave[tstack->ypos]))
+								if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
 								{
-									tstack->xpos = nolflen(tstack->strsave[tstack->ypos]);
+									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 								}
-								UpdateScrolledScreen(lineCount, tstack);
+								UpdateScrolledScreen(tstack);
 								DisplayCursorPos(tstack->xpos, tstack->ypos);
 								SetDisplayY(tstack);
 								SetDisplayCursorPos(tstack);
@@ -1243,16 +1126,16 @@ int GetNewtroditInput(File_info *tstack)
 								tstack->ypos += scrollRate;
 								if (tstack->last_pos_scroll == -1)
 								{
-									tstack->xpos = nolflen(tstack->strsave[tstack->ypos]);
+									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 								}
-								if (tstack->xpos > nolflen(tstack->strsave[tstack->ypos]))
+								if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
 								{
 									tstack->last_pos_scroll = -1; // End of line
-									tstack->xpos = nolflen(tstack->strsave[tstack->ypos]);
+									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 								}
-								UpdateScrolledScreen(lineCount, tstack);
 								DisplayCursorPos(tstack->xpos, tstack->ypos);
 								SetDisplayY(tstack);
+								UpdateScrolledScreen(tstack);
 
 								SetDisplayCursorPos(tstack);
 							}
@@ -1267,14 +1150,19 @@ int GetNewtroditInput(File_info *tstack)
 
 						x = irInBuffer[i].Event.MouseEvent.dwMousePosition.X;
 						y = irInBuffer[i].Event.MouseEvent.dwMousePosition.Y;
-						if (x < XSIZE && x < tstack->bufx && y < tstack->bufy && y <= tstack->display_y && tstack->strsave[y][0] != '\0')
+
+						if (x <= XSIZE && x < tstack->bufx && y < tstack->bufy && y <= YSCROLL && tstack->strsave[y][0] != '\0')
 						{
-							// TO WORK ON LATER
-							SetYFromDisplayY(tstack, y, &tstack->ypos, &tstack->display_y);
 
-							tstack->xpos = (x - (lineCount ? tstack->linecount_wide : 0) > nolflen(tstack->strsave[tstack->ypos]) ? nolflen(tstack->strsave[tstack->ypos]) : x - (lineCount ? tstack->linecount_wide : 0));
-
+							old_ypos = tstack->ypos;
+							SetYFromDisplayY(tstack, y);
+							tstack->xpos = (x - (lineCount ? tstack->linecount_wide : 0) > NoLfLen(tstack->strsave[tstack->ypos]) ? NoLfLen(tstack->strsave[tstack->ypos]) : x - (lineCount ? tstack->linecount_wide : 0));
+							if (y < YSCROLL && old_ypos >= tstack->display_y) // Avoid reloading the screen unnecessarely
+							{
+								RedrawScrolledScreen(tstack, tstack->ypos);
+							}
 							DisplayCursorPos(tstack->xpos, tstack->ypos);
+							SetDisplayY(tstack);
 							SetDisplayCursorPos(tstack);
 						}
 					}
