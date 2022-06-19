@@ -1,0 +1,80 @@
+; Newtrodit Python language syntax highlighting
+
+$NEWTRODIT_SYNTAX
+$LANGUAGE Python
+$COMMENT #
+$COMMENT_COLOR 2
+$QUOTE_COLOR e
+$DEFAULT_COLOR b
+$NUMBER_COLOR a
+$SEPARATORS []()+-/*=;:,.
+
+and=6
+as=6
+assert=6
+break=6
+class=6
+continue=6
+def=a
+del=6
+elif=6
+else=6
+except=6
+False=1
+finally=6
+for=6
+from=6
+global=6
+if=6
+import=6
+in=6
+is=6
+lambda=6
+None=1
+nonlocal=6
+not=6
+or=6
+pass=6
+raise=6
+return=6
+True=1
+try=6
+while=6
+with=6
+yield=6
+
+; Exceptions
+
+ArithmeticError=4
+AssertionError=4
+AttributeError=4
+Exception=4
+EOFError=4
+FloatingPointError=4
+GeneratorExit=4
+ImportError=4
+IndentationError=4
+IndexError=4
+KeyError=4
+KeyboardInterrupt=4
+LookupError=4
+MemoryError=4
+NameError=4
+NotImplementedError=4
+OSError=4
+OverflowError=4
+ReferenceError=4
+RuntimeError=4
+StopIteration=4
+SyntaxError=4
+TabError=4
+SystemError=4
+SystemExit=4
+TypeError=4
+UnboundLocalError=4
+UnicodeError=4
+UnicodeEncodeError=4
+UnicodeDecodeError=4
+UnicodeTranslateError=4
+ValueError=4
+ZeroDivisionError=4
