@@ -34,15 +34,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../dialog.h"
+#include "../src/dialog.h"
 #include <ctype.h>
 #include <fcntl.h> // _setmode, _fileno
 #include <wchar.h> // For UTF-8 support
-
-struct FILETIME_ {
-  unsigned int fwrite_time;
-  unsigned int fread_time;
-} FILETIME;
 
 /* ================================= SETTINGS ==================================== */
 #define DEBUG_MODE 1
@@ -83,7 +78,7 @@ typedef int bool;
 #define DEBUG
 #endif
 
-#include "../globals.h"
+#include "../src/globals.h"
 
 enum ConsoleQueryList {
   XWINDOW = 1,
@@ -232,9 +227,6 @@ typedef struct File_info {
   Undo_stack *Ustack;
   Syntax_info Syntaxinfo;
   Compiler Compilerinfo;
-  void* hFile; // File handle
-	FILETIME fwrite_time;
-	FILETIME fread_time;
 } File_info; // File information. This is used to store all the information
              // about the file.
 
@@ -359,17 +351,6 @@ void SetColor(int color) {
   printf("%s", HexToAnsi(color));
 }
 
-/* Set color of a specific terminal cell (specified by X, and Y) */
-void SetCharColor(size_t count, int color, int x, int y)
-{
-/* Not working
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD writePos = {x, y};
-	DWORD dwWritten = 0;
-	FillConsoleOutputAttribute(hConsole, HexColorToConsole(color), count, writePos, &dwWritten);
-*/
-}
-
 /* Clear entire screen (keeping terminal cursor in the same location) */
 void ClearScreen() {
   printf("\x1B[2J");
@@ -402,92 +383,7 @@ void PrintBottomString(char *bottom_string) {
   return;
 }
 
-/* Set size of the console window */
-void SetConsoleSize(int xsize, int ysize)
-{
-/* Not working
-	HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD a = {xsize, ysize};
-
-	SMALL_RECT rect;
-	rect.Top = 0;
-	rect.Left = 0;
-	rect.Bottom = xsize - 1;
-	rect.Right = ysize - 1;
-
-	SetConsoleScreenBufferSize(handle, a);
-
-	SetConsoleWindowInfo(handle, 1, &rect);
-*/
-}
-
 /* ----------------------------- COLOR FUNCTIONS --------------------------------- */
-
-int HexColorToConsole(int color_hex)
-{
-	return (color_hex / 16) << 4 | (color_hex % 16);
-}
-
-// !!!THIS IS OLD AND NEEDS TO BE REPLACED BY ANIC'S IMPLEMENTATION!!!
-// Hex converts to RGB. If RGB is not supported in the terminal
-// then this function will not work properly. I hope to fix this.
-//
-// Layer being 1: FG, 0: BG
-/*
- char* HexColorToTerminal(int color_hex, int layer)
-{
-	char *esc;
-	int r, g, b;
- 	r = ((color_hex >> 16) & 0xFF) / 255.0; // Extract the RR byte
- 	g = ((color_hex >> 8) & 0xFF) / 255.0;  // Extract the GG byte
- 	b = ((color_hex) & 0xFF) / 255.0;       // Extract the BB byte
-	if (!layer) {
-		asprintf(&esc, "\x1B[48;2;%d;%d;%dm", r, g, b);
-	} else {
-		asprintf(&esc, "\x1B[38;2;%d;%d;%dm", r, g, b);
-	}
-}
-*/
-
-/* Convert a string hex to a decimal number
- *
- * Makes life a bit easier by removing repeditive calls
- */
-int HexStrToDec(char *s)
-{
-	return strtol(s, NULL, 16);
-}
-
-/* Parse string hex to BIOS standards */
-char *ParseHexString(char *hexstr)
-{
-	int count = 0, index = 0;
-	char *hex_prefix = "0x";
-	char *strpbrk_ptr;
-	char *str = (char *)malloc(strlen(hexstr) + 1);
-	if (!strpbrk(hexstr, "01234567890abcdefABCDEF"))
-	{
-		return hexstr;
-	}
-
-	// Convert an hex string to a string
-	strpbrk_ptr = strpbrk(hexstr, ", \t");
-
-	// Convert the string to a hex string
-	for (int i = 0; i < strlen(hexstr); i++)
-	{
-		if (isxdigit(hexstr[i]) && isxdigit(hexstr[i + 1]))
-		{
-			str[index] = hexstr[i] * 16 + hexstr[i + 1];
-			index++;
-		}
-		else if (hexstr[i] != ' ' && hexstr[i] != ',' && hexstr[i] != '\t')
-		{
-			return NULL;
-		}
-	}
-}
-
 
 /* =============================== END OF TERM ================================== */
 

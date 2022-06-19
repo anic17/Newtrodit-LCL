@@ -196,27 +196,31 @@ void LoadAllNewtrodit()
 
 void NewtroditCrash(char *crash_reason, int crash_retval)
 {
-	signal(SIGSEGV, SIG_DFL); // Reset signal handler to avoid infinite crash loops
-	int get_le = GetLastError();
-	char *crash_desc = (LPSTR)GetErrorDescription(get_le);
-	crash_desc[strcspn(crash_desc, "\r")] = 0;
-	LoadAllNewtrodit(); // Just to not have a blank screen and make it scary
-	int errno_temp = errno;
-	if (!errno_temp)
-	{
-		errno_temp = crash_retval;
-	}
-	ClearPartial(0, 1, XSIZE, YSIZE - 1);
-	printf("\aNewtrodit ran into a problem and it crashed. We're sorry.\nPlease report this issue to %s/issues\n\nDebug info:\nerrno: 0x%x (%s)\nGetLastError: 0x%x (%s)\nLast known debug information: %s\n\nProgram information:\nVersion: %s\nBuild date: %s\nCommand line arguments:\n", newtrodit_repository, errno_temp, strerror(errno_temp), get_le, crash_desc, last_known_exception, newtrodit_version, newtrodit_build_date);
-	for (int i = 0; i < SInf.argc; i++)
-	{
-		printf("%s ", SInf.argv[i]); // Prints the command line arguments
-	}
-	
-	printf("\n\nEditing file '%s', line %d, column %d\nTabs open: %d, current tab: %d\n\nReason: %s\n\nPress enter to exit...\n", Tab_stack[file_index].filename, Tab_stack[file_index].ypos, Tab_stack[file_index].xpos + 1, open_files, file_index + 1, crash_reason);
-	DisplayCursor(true);
-	getchar();
-	ExitRoutine(crash_retval); // Don't perform any cleanup, just exit
+    signal(SIGSEGV, SIG_DFL); // Reset signal handler to avoid infinite crash loops
+#ifdef _WIN32
+    int get_le = GetLastError();
+    char *crash_desc = (LPSTR)GetErrorDescription(get_le);
+#else
+  char* crash_desc = NEWTRODIT_CRASH_UNKNOWN_EXCEPTION;
+#endif
+    crash_desc[strcspn(crash_desc, "\r")] = 0;
+    LoadAllNewtrodit(); // Just to not have a blank screen and make it scary
+    int errno_temp = errno;
+    if (!errno_temp)
+    {
+        errno_temp = crash_retval;
+    }
+    ClearPartial(0, 1, XSIZE, YSIZE - 1);
+    printf("\aNewtrodit ran into a problem and it crashed. We're sorry.\nPlease report this issue to %s/issues\n\nDebug info:\nerrno: 0x%x (%s)\nGetLastError: 0x%x (%s)\nLast known debug information: %s\n\nProgram information:\nVersion: %s\nBuild date: %s\nCommand line arguments:\n", newtrodit_repository, errno_temp, strerror(errno_temp), get_le, crash_desc, last_known_exception, newtrodit_version, newtrodit_build_date);
+    for (int i = 0; i < SInf.argc; i++)
+    {
+        printf("%s ", SInf.argv[i]); // Prints the command line arguments
+    }
+    
+    printf("\n\nEditing file '%s', line %d, column %d\nTabs open: %d, current tab: %d\n\nReason: %s\n\nPress enter to exit...\n", Tab_stack[file_index].filename, Tab_stack[file_index].ypos, Tab_stack[file_index].xpos + 1, open_files, file_index + 1, crash_reason);
+    DisplayCursor(true);
+    getchar();
+    ExitRoutine(crash_retval); // Don't perform any cleanup, just exit
 }
 
 int QuitProgram(int color_quit)

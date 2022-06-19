@@ -19,14 +19,11 @@
 #pragma once
 
 #ifdef _WIN32
-// Not sure if this works on Windows
 #include "win32/newtrodit_core_win.h"
 #else
 #include "linux/newtrodit_core_linux.h"
 #endif
-
 #include "newtrodit_syntax.h"
-
 
 void DisplayLineCount(File_info *tstack, int size, int yps);
 int SaveFile(File_info *tstack);
@@ -34,12 +31,11 @@ int DisplayFileContent(File_info *tstack, FILE *fstream, int starty);
 
 #include "newtrodit_gui.c"
 #ifdef _WIN32
-// Not sure if this works on Windows
 #include "win32/newtrodit_func_win.c"
 #else
 #include "linux/newtrodit_func_linux.c"
 #endif
-
+#include "newtrodit_api.c"
 
 int DownArrow(int man_line_count)
 {
@@ -54,13 +50,22 @@ int DownArrow(int man_line_count)
 	return man_line_count;
 }
 
-void DisableVT()
+int VTSettings(bool enabled)
 {
 	DWORD lmode; // Process ANSI escape sequences
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	GetConsoleMode(hStdout, &lmode);
-	SetConsoleMode(hStdout, lmode &= ~ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN);
+	if (enabled)
+	{
+		lmode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING & ~DISABLE_NEWLINE_AUTO_RETURN;
+	}
+	else
+	{
+
+		lmode &= ~ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
+	}
+	return SetConsoleMode(hStdout, lmode);
 }
 
 int NewtroditHelp()
@@ -71,7 +76,7 @@ int NewtroditHelp()
 	SetConsoleTitle("Newtrodit help");
 	SetColor(BG_DEFAULT); // Don't change manual color (Maybe in a future update?)
 
-	CursorSettings(FALSE, GetConsoleInfo(CURSOR_SIZE));
+	CursorSettings(FALSE, GetConsoleInfo(CURSORSIZE));
 	ClearScreen();
 
 	TopHelpBar();
@@ -79,8 +84,8 @@ int NewtroditHelp()
 	FILE *manual = fopen(manual_file, "rb");
 	if (!manual)
 	{
-		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, StrLastTok(manual_file, PATHTOKENS)));
-		CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, strlasttok(manual_file, PATHTOKENS)));
+		CursorSettings(true, GetConsoleInfo(CURSORSIZE));
 		getch_n();
 		_chdir(SInf.dir);
 
@@ -104,13 +109,8 @@ int NewtroditHelp()
 		return 0;
 	}
 
-	DWORD l_mode;
-	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-	GetConsoleMode(hStdout, &l_mode);
 
-	if (!SetConsoleMode(hStdout, l_mode |
-									 ENABLE_VIRTUAL_TERMINAL_PROCESSING |
-									 DISABLE_NEWLINE_AUTO_RETURN) && !_NEWTRODIT_OLD_SUPPORT) // Process ANSI escape sequences and check if the console supports ANSI escape sequences
+	if (!VTSettings(true) && !RGB24bit) // Process ANSI escape sequences and check if the console supports ANSI escape sequences
 	{
 		PrintBottomString(NEWTRODIT_ERROR_LOADING_MANUAL);
 		getch_n();
@@ -142,16 +142,16 @@ int NewtroditHelp()
 		{
 			PrintBottomString(join(NEWTRODIT_ERROR_INVALID_MANUAL, manual_file));
 			getch_n();
-			DisableVT();
+			VTSettings(false);
 			_chdir(SInf.dir);
 
 			return 1;
 		}
-		if (man_line_count + 1 >= MANUAL_BUFFER_X)
+		if (man_line_count + 1 >= MANUAL_BUFFER_Y)
 		{
 			PrintBottomString(NEWTRODIT_ERROR_MANUAL_TOO_BIG);
 			getch_n();
-			DisableVT();
+			VTSettings(false);
 			_chdir(SInf.dir);
 
 			return 1;
@@ -255,15 +255,15 @@ int NewtroditHelp()
 			switch (manual_ch)
 			{
 			case 24: // ^X
-				CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-				DisableVT();
+				CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+				VTSettings(false);
 				_chdir(SInf.dir);
 
 				return 0;
 				break;
 			case 27: // ESC
-				CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-				DisableVT();
+				CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+				VTSettings(false);
 				_chdir(SInf.dir);
 
 				return 0;
@@ -281,8 +281,8 @@ int NewtroditHelp()
 				}
 				if (manual_ch == 59) // F1
 				{
-					CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-					DisableVT();
+					CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+					VTSettings(false);
 					for (int i = 0; i < MANUAL_BUFFER_Y; i++)
 					{
 						free(manual_buf[i]);
@@ -403,8 +403,8 @@ int NewtroditHelp()
 	{
 		free(manual_buf[i]);
 	}
-	CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-	DisableVT();
+	CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+	VTSettings(false);
 	_chdir(SInf.dir);
 
 	return 0;

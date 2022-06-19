@@ -1,4 +1,4 @@
-#include "linux_newtrodit_core_testing.h"
+#include "newtrodit_core_linux.h"
 
 int main() {
 	/* Moving cursor  | Passes
@@ -40,9 +40,14 @@ int main() {
 	//printf("More testing no color");
 
 	// Setting char color
-	EnterAltConsoleBuffer();
-	printf("Testing some color :)");
-	gotoxy(5, 0);
-	printf("\x1B[1;31m");
-	gotoxy(0, 3);
+	//EnterAltConsoleBuffer();
+	//printf("Testing some color :)");
+	//gotoxy(5, 0);
+	//printf("\x1B[1;31m");
+	//gotoxy(0, 3);
+
+	// Getting time  | Passes
+	printf("%s", GetTime(0));
+
+
 }
