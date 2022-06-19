@@ -6,6 +6,8 @@
 # Newtrodit-LCL
 Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under the GNU GPL v3.0 licence see [LICENSE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
+<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png">
+
 # About
 Newtrodit is a Windows and Linux supported text editor that was developed using the C programming language.
 
