@@ -39,7 +39,7 @@
 #include <fcntl.h> // _setmode, _fileno
 #include <wchar.h> // For UTF-8 support
 
-struct FILETIME {
+typedef struct FILETIME {
   unsigned int dwHighDateTime;
   unsigned int dwLowDateTime;
 } FILETIME_;
