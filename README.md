@@ -7,7 +7,6 @@
 Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under the GNU GPL v3.0 licence see [LICENSE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL 3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
 
-
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png">
 <p class="main-screenshot"><em>Default Newtrodit theme</em></p>
 
@@ -41,8 +40,7 @@ As I was quite new to C, creating Newtodit was a challenge to see how good I cou
    - File locating
 
 # Requirements
-
-Newtrodit doesn't need any special requirements, it can run on Windows versions starting from Windows XP to Windows 11, and on any recent Linux system.
+Newtrodit doesn't need any special requirements, it can run on Windows versions starting from Windows XP to Windows 11, and on any recent Linux system supporting VT100 terminal emulators.
 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
