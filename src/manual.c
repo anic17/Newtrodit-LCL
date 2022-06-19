@@ -76,7 +76,7 @@ int NewtroditHelp()
 	SetConsoleTitle("Newtrodit help");
 	SetColor(BG_DEFAULT); // Don't change manual color (Maybe in a future update?)
 
-	CursorSettings(FALSE, GetConsoleInfo(CURSORSIZE));
+	CursorSettings(FALSE, GetConsoleInfo(CURSOR_SIZE));
 	ClearScreen();
 
 	TopHelpBar();
@@ -85,7 +85,7 @@ int NewtroditHelp()
 	if (!manual)
 	{
 		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, strlasttok(manual_file, PATHTOKENS)));
-		CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+		CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 		getch_n();
 		_chdir(SInf.dir);
 
@@ -255,14 +255,14 @@ int NewtroditHelp()
 			switch (manual_ch)
 			{
 			case 24: // ^X
-				CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+				CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 				VTSettings(false);
 				_chdir(SInf.dir);
 
 				return 0;
 				break;
 			case 27: // ESC
-				CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+				CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 				VTSettings(false);
 				_chdir(SInf.dir);
 
@@ -281,7 +281,7 @@ int NewtroditHelp()
 				}
 				if (manual_ch == 59) // F1
 				{
-					CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+					CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 					VTSettings(false);
 					for (int i = 0; i < MANUAL_BUFFER_Y; i++)
 					{
@@ -403,7 +403,7 @@ int NewtroditHelp()
 	{
 		free(manual_buf[i]);
 	}
-	CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+	CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 	VTSettings(false);
 	_chdir(SInf.dir);
 
