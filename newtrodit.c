@@ -450,11 +450,6 @@ int main(int argc, char *argv[])
 
     int undo_stack_line = 0, undo_stack_tree = 0;
 
-    if (!lineCount)
-    {
-        LINECOUNT_WIDE = 0;
-    }
-
     // Declare variables
     int old_x_size = 0, old_y_size = 0;
     int bs_tk = 0;
