@@ -67,6 +67,9 @@ You can join the Program Dream Discord server here and talk about everything rel
 ## Credits
 Thanks to all the contributers who helped make Newtrodit possible!
 
-* [anic17](https://github.com/anic17)
-* [ZackeryRSmith](https://github.com/ZackeryRSmith)
-* [timlg07](https://github.com/timlg07)
+* [anic17](https://github.com/anic17) — Creator of Newtrodit, main developer
+* [ZackeryRSmith](https://github.com/ZackeryRSmith) — Creator of Newtrodit-LCL, helped a lot on the development
+* [timlg07](https://github.com/timlg07) — Bug fixes
+<hr>
+
+###### Copyright &copy; 2021-2022 anic17 Software
