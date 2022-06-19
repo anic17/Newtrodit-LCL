@@ -1,0 +1,84 @@
+
+!!!! COLOR FUNCTIONS !!!!
+
+
+int HexColorToConsole(int color_hex) {
+  return (color_hex / 16) << 4 | (color_hex % 16);
+}
+
+// !!!THIS IS OLD AND NEEDS TO BE REPLACED BY ANIC'S IMPLEMENTATION!!!
+// Hex converts to RGB. If RGB is not supported in the terminal
+// then this function will not work properly. I hope to fix this.
+//
+// Layer being 1: FG, 0: BG
+char *HexColorToTerminal(int color_hex, int layer) {
+  char *esc;
+  int r, g, b;
+  r = ((color_hex >> 16) & 0xFF) / 255.0; // Extract the RR byte
+  g = ((color_hex >> 8) & 0xFF) / 255.0;  // Extract the GG byte
+  b = ((color_hex)&0xFF) / 255.0;         // Extract the BB byte
+  if (!layer) {
+    asprintf(&esc, "\x1B[48;2;%d;%d;%dm", r, g, b);
+  } else {
+    asprintf(&esc, "\x1B[38;2;%d;%d;%dm", r, g, b);
+  }
+}
+
+/* Convert a string hex to a decimal number
+ *
+ * Makes life a bit easier by removing repeditive calls
+ */
+int HexStrToDec(char *s) { return strtol(s, NULL, 16); }
+
+/* Parse string hex to BIOS standards */
+char *ParseHexString(char *hexstr) {
+  int count = 0, index = 0;
+  char *hex_prefix = "0x";
+  char *strpbrk_ptr;
+  char *str = (char *)malloc(strlen(hexstr) + 1);
+  if (!strpbrk(hexstr, "01234567890abcdefABCDEF")) {
+    return hexstr;
+  }
+
+  // Convert an hex string to a string
+  strpbrk_ptr = strpbrk(hexstr, ", \t");
+
+  // Convert the string to a hex string
+  for (int i = 0; i < strlen(hexstr); i++) {
+    if (isxdigit(hexstr[i]) && isxdigit(hexstr[i + 1])) {
+      str[index] = hexstr[i] * 16 + hexstr[i + 1];
+      index++;
+    } else if (hexstr[i] != ' ' && hexstr[i] != ',' && hexstr[i] != '\t') {
+      return NULL;
+    }
+  }
+}
+
+
+!!!! END OF COLOR FUNCTIONS !!!!
+
+
+
+
+
+!!!! STRING FUNCTIONS !!!!
+
+size_t strrpbrk(char *s, char *find) // Reverse strpbrk, just like strrchr but
+                                     // for multiple characters
+{
+  size_t findlen = strlen(find);
+  size_t slen = strlen(s);
+  for (size_t i = slen; i > 0; i--) {
+    for (size_t j = 0; j < findlen; j++) {
+      if (s[i - 1] == find[j]) {
+        return i - 1;
+      }
+    }
+  }
+  return 0;
+}
+
+
+
+
+!!!! END OF STRING FUNTIONS !!!!
