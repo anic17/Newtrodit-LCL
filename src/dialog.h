@@ -40,6 +40,7 @@ char NEWTRODIT_ERROR_INVALID_MACRO[] = "Invalid macro: ";
 char NEWTRODIT_ERROR_INVALID_UNICODE_SEQUENCE[] = "Invalid Unicode byte sequence.";
 char NEWTRODIT_ERROR_TOO_MANY_FILES_OPEN[] = "Too many files open.";
 char NEWTRODIT_ERROR_CANNOT_OPEN_DEVICE[] = "Cannot open device file: ";
+char NEWTRODIT_ERROR_CONSOLE_HANDLE[] = "Cannot get console handle.";
 char NEWTRODIT_LICENSE_INVALID_LICENSE[] = "Detected an invalid or outdated license file.";
 char NEWTRODIT_LICENSE_MISSING_LICENSE[] = "License file is missing: ";
 
@@ -105,6 +106,7 @@ char NEWTRODIT_PROMPT_FIRST_FILE_COMPARE[] = "First file to compare: ";
 char NEWTRODIT_PROMPT_SECOND_FILE_COMPARE[] = "Second file to compare: ";
 
 // Informational dialogs
+char NEWTRODIT_NO_ERROR[] = "No error.";
 char NEWTRODIT_FILE_SAVED[] = "File saved successfully.";
 char NEWTRODIT_FILE_RELOADED[] = "File reloaded successfully.";
 char NEWTRODIT_NEW_FILE_CREATED[] = "New file created successfully.";
