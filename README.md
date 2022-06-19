@@ -19,9 +19,9 @@ Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under
 Newtrodit is a Windows and Linux supported text editor that was developed using the C programming language.
 
 ## Motives
-&emsp;I once tried to make a clone of the old MS-DOS [EDIT.COM](https://en.wikipedia.org/wiki/MS-DOS_Editor) in batch. Though during the making of it I realized something. It would be **really** complicated to use batch, and performance issues were starting to appear.
+&emsp;I once tried to make a clone of the old MS-DOS [EDIT.COM](https://en.wikipedia.org/wiki/MS-DOS_Editor) in batch. Though during the making of it I realized something. It would have been **really** complicated to use batch, and performance issues were starting to appear.
 
-As I was quite new to C, creating Newtodit was a challenge to see how good I could make an EDIT.COM clone with more features. The UI got changed plenty of times —it even had a blue background once— until it became what it is now. I started to love coding Newtrodit, and that's why today I'm continuing to develop Newtrodit to this day.
+As I was quite new to C, creating Newtrodit was a challenge to see how good I could make an EDIT.COM clone with more features. The UI got changed plenty of times —it even had a blue background back then— until it became what it is now. I started to love coding Newtrodit, and that's why today I'm continuing to develop Newtrodit to this day.
 
 # Features
 - Fast and light
@@ -53,7 +53,7 @@ Contributions are what make the open source community such an amazing place to l
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
 Don't forget to give the project a star! Thanks again!
 
-1. Fork the Project
+1. Fork the project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
