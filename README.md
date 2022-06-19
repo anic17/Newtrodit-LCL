@@ -52,8 +52,9 @@ Don't forget to give the project a star! Thanks again!
 5. Open a Pull Request
 # Contact
 
-You can join the Program Dream Discord server here and talk about everything related to Newtrodit.
+You can join the Program Dream Discord server here and talk about everything related to Newtrodit.</br>
 <a href="https://discord.gg/J628dBqQgb"><img src="https://img.shields.io/discord/728958932210679869"></a>
+<hr>
 
 ## Credits
 Thanks to all the contributers who helped make Newtrodit possible!
