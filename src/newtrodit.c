@@ -767,7 +767,7 @@ int main(int argc, char *argv[])
             {
                 if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][0] != '\0')
                 {
-                    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
+                    //HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
                     memcpy(GlobalLock(hMem), Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1); // Copy line to the clipboard
                     GlobalUnlock(hMem);
                     OpenClipboard(0);
@@ -1516,11 +1516,11 @@ int main(int argc, char *argv[])
                     isFullScreen ? SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_INPUT | ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT) : SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_INPUT | ENABLE_MOUSE_INPUT);
                     if (!isFullScreen)
                     {
-                        ShowWindow(GetConsoleWindow(), SW_MAXIMIZE); // Show the window in fullscreen
+                        //ShowWindow(GetConsoleWindow(), SW_MAXIMIZE); // Show the window in fullscreen
                     }
                     else
                     {
-                        ShowWindow(GetConsoleWindow(), SW_RESTORE); // Show the window in fullscreen
+                        //ShowWindow(GetConsoleWindow(), SW_RESTORE); // Show the window in fullscreen
                     }
                     ch = 0;
                 }
@@ -2327,7 +2327,7 @@ int main(int argc, char *argv[])
                         Tab_stack[file_index].Ustack->create_nl = false;
                         Tab_stack[file_index].Ustack++->create_nl = false;
 
-                        HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
+                        //HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
                         memcpy(GlobalLock(hMem), Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1); // Copy line to the clipboard
                         GlobalUnlock(hMem);
                         OpenClipboard(0);

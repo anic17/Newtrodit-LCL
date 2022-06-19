@@ -45,15 +45,24 @@ struct FILETIME {
 } FILETIME_;
 
 /* ================================= SETTINGS ==================================== */
+#define _NEWTRODIT_OLD_SUPPORT 0
 #define DEBUG_MODE 1
 
-#define TAB_WIDE_ 2
-#define CURSIZE_ 20
-#define LINECOUNT_WIDE_ 4 // To backup original value
-#define MIN_BUFSIZE 256
-#define LINE_MAX 8192
-#define MAX_TABS 48       // Maximum number of files opened at once
-#define MAX_PATH 260
+#define TAB_WIDE_       2
+#define CURSIZE_        20
+#define LINECOUNT_WIDE_ 4    // To backup original value
+#define MIN_BUFSIZE     256
+#define LINE_MAX        8192 
+#define MAX_TABS        48   // Maximum number of files opened at once
+#define MAX_PATH        260
+
+#define VK_TAB     8
+#define VK_RETURN  13
+#define VK_CONTROL 17
+#define VK_MENU    18
+#define VK_ESCAPE  27
+
+
 
 #if 0
 #define HORIZONTAL_SCROLL
@@ -835,7 +844,7 @@ char *StringToJSON(char *s) {
 /* Checks the physical state of a key (Pressed or not pressed) */
 int CheckKey(int keycode)
 {
-  return 0;
+  return 1;
 }
 
 /* Get absolute path to a file on the drive */
