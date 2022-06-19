@@ -6,6 +6,10 @@
 # Newtrodit-LCL
 Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under the GNU GPL v3.0 licence see [LICENSE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL 3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
+<a href="https://github.com/anic17/Newtrodit/stargazers">![newtrodit-stars](https://img.shields.io/github/stars/anic17/Newtrodit?color=yellow)</a>
+<a href="https://github.com/anic17/Newtrodit/network/members">![newtrodit-forks](https://img.shields.io/github/forks/anic17/Newtrodit)</a>
+<a href="https://www.gnu.org/licenses/gpl-3.0">![newtrodit-license](https://img.shields.io/github/license/anic17/Newtrodit)</a>
+<a href="https://github.com/anic17/Newtrodit/issues">![newtrodit-issues](https://img.shields.io/github/issues/anic17/Newtrodit)</a>
 
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png">
 <p><em><sup>Default Newtrodit theme</sup></em></p></br>
