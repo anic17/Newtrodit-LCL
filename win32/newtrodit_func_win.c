@@ -785,7 +785,7 @@ signed long long FileCompare(char *file1, char *file2) // Compare files up to 8 
 int insert_new_row(File_info *tstack, int *xps, int *yps, int dispy, int size, char *newline)
 {
 	int n = *yps; // Save old y
-	insert_row(tstack->strsave, *yps, size, NULL);
+	InsertRow(tstack->strsave, *yps, size, NULL);
 	(*yps)++;
 
 	if (BufferLimit(tstack)) // Don't overflow
@@ -846,7 +846,7 @@ int LocateFiles(int show_dir, char *file, int startpos)
 	if (!isWildcard && get_path_directory(file, out_dir))
 	{
 		SetCurrentDirectory(out_dir);
-		file = strlasttok(strdup(file), PATHTOKENS);
+		file = StrLastTok(strdup(file), PATHTOKENS);
 	}
 
 	printf("Current directory: %s\n", _getcwd(NULL, 0));
@@ -902,7 +902,7 @@ int ReturnFindIndex(int insensitive, char *str, char *find)
 	int find_string_index = -1;
 	if (insensitive)
 	{
-		find_string_index = FindString(str_lwr(str), str_lwr(strdup(find)));
+		find_string_index = FindString(strlwr(str), strlwr(strdup(find)));
 	}
 	else
 	{

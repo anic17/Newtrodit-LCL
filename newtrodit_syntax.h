@@ -102,42 +102,42 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
         }
         if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_DEFAULT_COLOR, strlen(NEWTRODIT_SYNTAX_DEFAULT_COLOR)))
         {
-            default_color = hexstrtodec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_DEFAULT_COLOR) + 1);
+            default_color = HexStrToDec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_DEFAULT_COLOR) + 1);
             tstack->Syntaxinfo.default_color = default_color;
 
             continue;
         }
         if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_QUOTE_COLOR, strlen(NEWTRODIT_SYNTAX_QUOTE_COLOR)))
         {
-            quote_color = hexstrtodec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_QUOTE_COLOR) + 1);
+            quote_color = HexStrToDec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_QUOTE_COLOR) + 1);
             tstack->Syntaxinfo.quote_color = quote_color;
 
             continue;
         }
         if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_COMMENT_COLOR, strlen(NEWTRODIT_SYNTAX_COMMENT_COLOR)))
         {
-            comment_color = hexstrtodec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_COMMENT_COLOR) + 1);
+            comment_color = HexStrToDec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_COMMENT_COLOR) + 1);
             tstack->Syntaxinfo.comment_color = comment_color;
 
             continue;
         }
         if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_NUMBER_COLOR, strlen(NEWTRODIT_SYNTAX_NUMBER_COLOR)))
         {
-            num_color = hexstrtodec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_NUMBER_COLOR) + 1);
+            num_color = HexStrToDec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_NUMBER_COLOR) + 1);
             tstack->Syntaxinfo.num_color = num_color;
 
             continue;
         }
         if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_CAPITAL_COLOR, strlen(NEWTRODIT_SYNTAX_CAPITAL_COLOR)))
         {
-            capital_color = hexstrtodec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_CAPITAL_COLOR) + 1);
+            capital_color = HexStrToDec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_CAPITAL_COLOR) + 1);
             tstack->Syntaxinfo.capital_color = capital_color;
 
             continue;
         }
         if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_CAPITAL_MIN, strlen(NEWTRODIT_SYNTAX_CAPITAL_MIN)))
         {
-            capital_min_len = hexstrtodec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_CAPITAL_MIN) + 1);
+            capital_min_len = HexStrToDec(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_CAPITAL_MIN) + 1);
             tstack->Syntaxinfo.capital_min = capital_min_len;
 
             continue;
@@ -175,7 +175,7 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
         // If strdup is not used, the value will be overwritten by the next strtok call
         iniptr = strtok(NULL, tokchar);
 
-        highlight_color = hexstrtodec(iniptr);
+        highlight_color = HexStrToDec(iniptr);
         tstack->Syntaxinfo.color[c] = abs(highlight_color) % 16; // Range from 0 to 15
         WriteLogFile(join(
             join(

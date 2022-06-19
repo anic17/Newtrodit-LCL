@@ -143,7 +143,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     token = strtok(NULL, equalchar);
                     if (!strcmp(setting_list[i], "fontcolor"))
                     {
-                        bg_color = hexstrtodec(token) % 256;
+                        bg_color = HexStrToDec(token) % 256;
                         default_color = bg_color;
                     }
                     if (!strcmp(setting_list[i], "codepage"))
@@ -225,7 +225,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     }
                     if (!strcmp(setting_list[i], "menucolor"))
                     {
-                        fg_color = (hexstrtodec(token) * 16) % 256;
+                        fg_color = (HexStrToDec(token) * 16) % 256;
                     }
                     if (!strcmp(setting_list[i], "mouse"))
                     {
@@ -238,7 +238,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                         {
                             if (!strncmp(token, "0x", 2))
                             {
-                                parse_hex_string(token);
+                                ParseHexString(token);
                             }
                             strncpy_n(Tab_stack[file_index].newline, token, strlen(Tab_stack[file_index].newline));
                         }
@@ -524,7 +524,7 @@ int main(int argc, char *argv[])
                 {
 
                     syntaxHighlighting = true;
-                    Tab_stack[file_index].Syntaxinfo.syntax_file = full_path(syntaxfile);
+                    Tab_stack[file_index].Syntaxinfo.syntax_file = FullPath(syntaxfile);
                     Tab_stack[file_index].Syntaxinfo.keyword_count = syntaxKeywordsSize;
                 }
 
@@ -561,7 +561,7 @@ int main(int argc, char *argv[])
         {
             if (argv[arg_parse + 1] != NULL)
             {
-                fg_color = hexstrtodec(argv[arg_parse + 1]);
+                fg_color = HexStrToDec(argv[arg_parse + 1]);
                 if (fg_color > 0x0F || fg_color < 0)
                 {
                     fprintf(stderr, "%s\n", NEWTRODIT_ERROR_INVALID_COLOR);
@@ -581,7 +581,7 @@ int main(int argc, char *argv[])
         {
             if (argv[arg_parse + 1] != NULL)
             {
-                bg_color = hexstrtodec(argv[arg_parse + 1]);
+                bg_color = HexStrToDec(argv[arg_parse + 1]);
                 if (bg_color > 0x0F || bg_color < 0)
                 {
                     fprintf(stderr, "%s\n", NEWTRODIT_ERROR_INVALID_COLOR);
@@ -622,8 +622,8 @@ int main(int argc, char *argv[])
                 if (!open_argv)
                 {
 
-                    fprintf(stderr, "%s%s\n", substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
-                    WriteLogFile(join(NEWTRODIT_FS_FILE_OPEN_ERR, substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)));
+                    fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
+                    WriteLogFile(join(NEWTRODIT_FS_FILE_OPEN_ERR, Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)));
                     ExitRoutine(errno);
                 }
             }
@@ -643,7 +643,7 @@ int main(int argc, char *argv[])
             }
             if (LoadFile(&Tab_stack[file_index], Tab_stack[file_index].filename, open_argv) <= -1)
             {
-                fprintf(stderr, "%s%s\n", substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
+                fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
                 return errno;
             }
 
@@ -664,7 +664,7 @@ int main(int argc, char *argv[])
         LoadAllNewtrodit();
         LINECOUNT_WIDE = n2;
 
-        CenterText(strlasttok(Tab_stack[file_index].filename, PATHTOKENS), 0);
+        CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
         DisplayTabIndex(&Tab_stack[file_index]);
         DisplayFileContent(&Tab_stack[file_index], stdout, 0);
     }
@@ -950,7 +950,7 @@ int main(int argc, char *argv[])
                 if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos] == '\0')
                 {
                     Tab_stack[file_index].xpos = nolflen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
-                    relative_xpos[Tab_stack[file_index].ypos] = tokcount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "\t");
+                    relative_xpos[Tab_stack[file_index].ypos] = TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "\t");
                 }
             }
             else
@@ -1081,7 +1081,7 @@ int main(int argc, char *argv[])
 
                     old_open_files[oldFilesIndex] = Tab_stack[file_index].filename;
                     NewtroditNameLoad();
-                    CenterText(strlasttok(Tab_stack[file_index].filename, PATHTOKENS), 0);
+                    CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
                     DisplayTabIndex(&Tab_stack[file_index]);
                     RightAlignNewline();
                     DisplayFileContent(&Tab_stack[file_index], stdout, 0);
@@ -1333,11 +1333,11 @@ int main(int argc, char *argv[])
                         {
                             SetConsoleTitle("Executed DOWN ARROW");
                             getch_n();
-                            Tab_stack[file_index].xpos = nolflen(Tab_stack[file_index].strsave[++Tab_stack[file_index].ypos]) + (tokcount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1], "\t") * TAB_WIDE); // Add tab wide
+                            Tab_stack[file_index].xpos = nolflen(Tab_stack[file_index].strsave[++Tab_stack[file_index].ypos]) + (TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1], "\t") * TAB_WIDE); // Add tab wide
                         }
                         else
                         {
-                            n = tokcount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1] - Tab_stack[file_index].xpos, "\t");
+                            n = TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1] - Tab_stack[file_index].xpos, "\t");
 
                             Tab_stack[file_index].ypos++;
                         }
@@ -1466,7 +1466,7 @@ int main(int argc, char *argv[])
                     if (strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) > 0) // TODO: Fix this bug in the line number 1
                     {
                         undo_stack_line = Tab_stack[file_index].ypos;
-                        tmp = delete_char(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos);
+                        tmp = DeleteChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos);
                         if (Tab_stack[file_index].xpos < nolflen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]))
                         {
                             strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], tmp, BUFFER_X);
@@ -1485,7 +1485,7 @@ int main(int argc, char *argv[])
                             {
                                 strncat(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].newline, strlen(Tab_stack[file_index].newline)); // Add the newline string only if the ypos isn't 1
                             }
-                            delete_row(Tab_stack[file_index].strsave + 1, Tab_stack[file_index].ypos, BUFFER_X); // Delete the old row, shifting other rows up
+                            DeleteRow(Tab_stack[file_index].strsave + 1, Tab_stack[file_index].ypos, BUFFER_X); // Delete the old row, shifting other rows up
                             Tab_stack[file_index].linecount--;
                             if (!UpdateScrolledScreen(lineCount, &Tab_stack[file_index]))
                             {
@@ -1623,7 +1623,7 @@ int main(int argc, char *argv[])
                     {
                         syntaxHighlighting = true;
                         PrintBottomString(NEWTRODIT_SYNTAX_HIGHLIGHTING_LOADED);
-                        Tab_stack[file_index].Syntaxinfo.syntax_file = full_path(syntaxfile);
+                        Tab_stack[file_index].Syntaxinfo.syntax_file = FullPath(syntaxfile);
                         Tab_stack[file_index].Syntaxinfo.keyword_count = syntaxKeywordsSize;
                     }
                 }
@@ -1703,7 +1703,7 @@ int main(int argc, char *argv[])
                         }
                         gotoxy(find_string_index + (lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
                         SetColor(0x0e);
-                        printf("%s", substring(find_string_index, strlen(find_string), Tab_stack[file_index].strsave[i])); // Print found string using substrings
+                        printf("%s", Substring(find_string_index, strlen(find_string), Tab_stack[file_index].strsave[i])); // Print found string using Substrings
                         SetColor(bg_color);
                         print_line(Tab_stack[file_index].strsave[i] + find_string_index + strlen(find_string));
                         ShowFindMenu();
@@ -1859,7 +1859,7 @@ int main(int argc, char *argv[])
                         PrintBottomString(join(NEWTRODIT_FILE_RENAMED, newname));
                         strncpy_n(Tab_stack[file_index].filename, newname, MAX_PATH);
                         NewtroditNameLoad();
-                        CenterText(strlasttok(Tab_stack[file_index].filename, PATHTOKENS), 0);
+                        CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
                         DisplayTabIndex(&Tab_stack[file_index]);
 
                         RightAlignNewline();
@@ -1893,7 +1893,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     tmp = strdup(run_macro);
-                    tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_CURRENT_FILE, strlasttok(Tab_stack[file_index].filename, PATHTOKENS), &n);
+                    tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_CURRENT_FILE, StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), &n);
                     if (Tab_stack[file_index].is_untitled)
                     {
                         tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_FULL_PATH, Tab_stack[file_index].filename, &n);
@@ -1901,10 +1901,10 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_FULL_PATH, full_path(Tab_stack[file_index].filename), &n);
-                        get_path_directory(full_path(Tab_stack[file_index].filename), ptr);
+                        tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_FULL_PATH, FullPath(Tab_stack[file_index].filename), &n);
+                        get_path_directory(FullPath(Tab_stack[file_index].filename), ptr);
                         tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_CURRENT_DIR, ptr, &n);
-                        tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_CURRENT_EXTENSION, strlasttok(Tab_stack[file_index].filename, "."), &n);
+                        tmp = ReplaceString(strdup(tmp), NEWTRODIT_MACRO_CURRENT_EXTENSION, StrLastTok(Tab_stack[file_index].filename, "."), &n);
                     }
                     StartProcess(tmp);
                 }
@@ -1931,7 +1931,7 @@ int main(int argc, char *argv[])
                     Tab_stack[file_index].strsave[Tab_stack[file_index].ypos] = tmp;
                 }
 
-                insert_str(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], temp_strsave, Tab_stack[file_index].xpos);
+                InsertStr(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], temp_strsave, Tab_stack[file_index].xpos);
 
                 Tab_stack[file_index].xpos += strlen(temp_strsave);
 
@@ -2118,7 +2118,7 @@ int main(int argc, char *argv[])
                     n--;
                 }
 
-                Tab_stack[file_index].xpos = n + (tokcount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "\t") * TAB_WIDE);
+                Tab_stack[file_index].xpos = n + (TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "\t") * TAB_WIDE);
                 if (Tab_stack[file_index].xpos < 0)
                 {
                     Tab_stack[file_index].xpos = 0;
@@ -2197,7 +2197,7 @@ int main(int argc, char *argv[])
                 strncpy_n(Tab_stack[file_index].filename, save_dest, MAX_PATH);
                 NewtroditNameLoad();
 
-                CenterText(strlasttok(Tab_stack[file_index].filename, PATHTOKENS), 0);
+                CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
                 // RightAlignNewline();
                 // DisplayTabIndex(&Tab_stack[file_index]);
 
@@ -2232,7 +2232,7 @@ int main(int argc, char *argv[])
                     {
                         for (int i = 0; i < strlen(ptr); i++) // i is also character 9 :)
                         {
-                            tmp = insert_char(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ptr[i], Tab_stack[file_index].xpos - 1);
+                            tmp = InsertChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ptr[i], Tab_stack[file_index].xpos - 1);
                             strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], tmp, BUFFER_X);
                         }
                         printf("%s\n", tmp);
@@ -2364,7 +2364,7 @@ int main(int argc, char *argv[])
                  Tab_stack[file_index].Ustack->create_nl = false;
                  Tab_stack[file_index].Ustack->delete_nl = false; */
 
-                bs_tk = tokback_pos(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "()[]{}\t ", "?!");
+                bs_tk = TokBackPos(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "()[]{}\t ", "?!");
                 if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos] == '\0')
                 {
 
@@ -2410,7 +2410,7 @@ int main(int argc, char *argv[])
 
                     for (int i = 0; i < (Tab_stack[file_index].xpos - bs_tk <= 0) ? 0 : Tab_stack[file_index].xpos - bs_tk; i++)
                     {
-                        temp_strsave = delete_char_left(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], bs_tk);
+                        temp_strsave = DeleteCharLeft(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], bs_tk);
                         strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], temp_strsave, BUFFER_X);
                         Tab_stack[file_index].xpos--;
                     }
@@ -2424,7 +2424,7 @@ int main(int argc, char *argv[])
             {
                 if (Tab_stack[file_index].ypos > 1)
                 {
-                    insert_deleted_row(&Tab_stack[file_index]);
+                    InsertDeletedRow(&Tab_stack[file_index]);
                     if (!UpdateScrolledScreen(lineCount, &Tab_stack[file_index]))
                     {
                         ClearPartial(0, 1, XSIZE, YSIZE - 2);
@@ -2458,7 +2458,7 @@ int main(int argc, char *argv[])
         {
             CountBufferLines(&Tab_stack[file_index]);
 
-            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%u lines). Syntax highlighting: %s", strlasttok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
+            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%u lines). Syntax highlighting: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
             PrintBottomString(tmp);
             c = -2;
             ch = 0;
@@ -2472,11 +2472,11 @@ int main(int argc, char *argv[])
                 Tab_stack[file_index].ypos = Tab_stack[file_index].Ustack->line_count;
                 if (Tab_stack[file_index].Ustack->create_nl == true)
                 {
-                    insert_deleted_row(&Tab_stack[file_index]);
+                    InsertDeletedRow(&Tab_stack[file_index]);
                 }
                 if (Tab_stack[file_index].Ustack->delete_nl == true)
                 {
-                    insert_row(Tab_stack[file_index].strsave, Tab_stack[file_index].xpos, Tab_stack[file_index].ypos, Tab_stack[file_index].Ustack->line);
+                    InsertRow(Tab_stack[file_index].strsave, Tab_stack[file_index].xpos, Tab_stack[file_index].ypos, Tab_stack[file_index].Ustack->line);
                     Tab_stack[file_index].strsave[Tab_stack[file_index].Ustack->line_count] = strdup(Tab_stack[file_index].Ustack->line);
                 }
                 if (!UpdateScrolledScreen(lineCount, &Tab_stack[file_index]))
@@ -2605,7 +2605,7 @@ int main(int argc, char *argv[])
                         hasNewLine = true;
                     }
 
-                    tmp = delete_char_left(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos - 1);
+                    tmp = DeleteCharLeft(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos - 1);
                     if (hasNewLine)
                     {
                         strncat(tmp, Tab_stack[file_index].newline, strlen(Tab_stack[file_index].newline)); // strcat for CRLF newline
@@ -2635,7 +2635,7 @@ int main(int argc, char *argv[])
                 {
                     Tab_stack[file_index].is_modified = true;
                     // TODO: Fix bugs
-                    insert_deleted_row(&Tab_stack[file_index]);
+                    InsertDeletedRow(&Tab_stack[file_index]);
                     // Tab_stack[file_index].linecount--;
 
                     if (!UpdateScrolledScreen(lineCount, &Tab_stack[file_index]))
@@ -2678,7 +2678,7 @@ int main(int argc, char *argv[])
                         {
                             relative_xpos[Tab_stack[file_index].ypos] += TAB_WIDE;
                         }
-                        tmp = insert_char(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ch, Tab_stack[file_index].xpos);
+                        tmp = InsertChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ch, Tab_stack[file_index].xpos);
                         strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], tmp, BUFFER_X);
                         gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y); // Maybe this creates a bug, I don't know
                         print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
@@ -2693,7 +2693,7 @@ int main(int argc, char *argv[])
                     {
                         for (int i = 0; i < TAB_WIDE; i++) // i is also character 9 :)
                         {
-                            temp_strsave = insert_char(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ' ', Tab_stack[file_index].xpos);
+                            temp_strsave = InsertChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ' ', Tab_stack[file_index].xpos);
                             strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], temp_strsave, BUFFER_X);
                         }
                         Tab_stack[file_index].xpos += (TAB_WIDE - 1);
@@ -2702,7 +2702,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        temp_strsave = insert_char(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], 9, Tab_stack[file_index].xpos);
+                        temp_strsave = InsertChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], 9, Tab_stack[file_index].xpos);
                         strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], temp_strsave, BUFFER_X);
                         PrintTab(TAB_WIDE);
                         relative_xpos[Tab_stack[file_index].xpos] += TAB_WIDE;

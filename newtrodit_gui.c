@@ -57,7 +57,7 @@ int DisplayTabIndex(File_info *tstack)
 
 	if (open_files > 1)
 	{
-		int pos = (XSIZE / 2) + (strlen(strlasttok(tstack->filename, PATHTOKENS)) / 2) + (strlen(strlasttok(tstack->filename, PATHTOKENS)) % 2) + 1; // Center text and add a space
+		int pos = (XSIZE / 2) + (strlen(StrLastTok(tstack->filename, PATHTOKENS)) / 2) + (strlen(StrLastTok(tstack->filename, PATHTOKENS)) % 2) + 1; // Center text and add a space
 		gotoxy(pos, 0);
 
 		SetColor(fg_color);
@@ -181,7 +181,7 @@ void LoadAllNewtrodit()
 
 
 	NewtroditNameLoad();
-	CenterText(strlasttok(Tab_stack[file_index].filename, PATHTOKENS), 0);
+	CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
 	DisplayTabIndex(&Tab_stack[file_index]);
 	RightAlignNewline();
 	ShowBottomMenu();

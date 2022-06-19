@@ -79,7 +79,7 @@ int NewtroditHelp()
 	FILE *manual = fopen(manual_file, "rb");
 	if (!manual)
 	{
-		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, strlasttok(manual_file, PATHTOKENS)));
+		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, StrLastTok(manual_file, PATHTOKENS)));
 		CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 		getch_n();
 		_chdir(SInf.dir);

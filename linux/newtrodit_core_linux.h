@@ -388,7 +388,7 @@ void PrintBottomString(char *bottom_string) {
 /* =============================== END OF TERM ================================== */
 
 /* Get line length, ignoring linefeeds */
-size_t NoLfLen(char *s) {
+size_t nolflen(char *s) {
   char *exclude = Tab_stack[file_index].newline;
   if (!strchr(exclude,
               '\n')) // Always exclude a newline (\n) even if it's not present
@@ -651,7 +651,7 @@ char *DeleteRow(char **arr, int startpos, size_t arrsize) {
 
 /* ? */
 char *InsertDeletedRow(File_info *tstack) {
-  int n = NoLfLen(tstack->strsave[tstack->ypos]);
+  int n = nolflen(tstack->strsave[tstack->ypos]);
   strncat(tstack->strsave[tstack->ypos - 1], tstack->strsave[tstack->ypos],
           strlen(tstack->strsave[tstack->ypos])); // Concatenate the next line
   memset(tstack->strsave[tstack->ypos] + n, 0,
@@ -666,7 +666,7 @@ char *InsertDeletedRow(File_info *tstack) {
   DeleteRow(tstack->strsave, tstack->ypos, BUFFER_X);
 
   // Decrease the yp pointer by one
-  tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
+  tstack->xpos = nolflen(tstack->strsave[tstack->ypos]);
   last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 
   return tstack->strsave[tstack->ypos];
