@@ -36,7 +36,7 @@
 #include <fcntl.h> // _setmode, _fileno
 #include <ctype.h>
 #include <wchar.h> // For UTF-8 support
-#include "../dialog.h"
+#include "dialog.h"
 
 /* =============================== SETTINGS ================================== */
 #define _NEWTRODIT_OLD_SUPPORT 0                 // Toggle support for old versions of Windows (Windows XP and below)
@@ -82,7 +82,7 @@ typedef int bool;
 #define DEBUG
 #endif
 
-#include "../globals.h"
+#include "globals.h"
 
 enum ConsoleQueryList
 {
@@ -292,7 +292,7 @@ int RestoreConsoleBuffer()
 void SetColor(int color)
 {
 	HANDLE hConsoleColor = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(hConsoleColor, HexColorToConsole(color));
+	SetConsoleTextAttribute(hConsoleColor, color);
 }
 
 /* Set color of a specific terminal cell (specified by X, and Y) */
@@ -301,7 +301,7 @@ void SetCharColor(size_t count, int color, int x, int y)
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD writePos = {x, y};
 	DWORD dwWritten = 0;
-	FillConsoleOutputAttribute(hConsole, HexColorToConsole(color), count, writePos, &dwWritten);
+	FillConsoleOutputAttribute(hConsole, color, count, writePos, &dwWritten);
 }
 
 /* Clear entire screen (keeping terminal cursor in the same location) */
@@ -390,10 +390,6 @@ void SetConsoleSize(int xsize, int ysize)
 }
 
 /* ----------------------------- COLOR FUNCTIONS --------------------------------- */
-int HexColorToConsole(int color_hex)
-{
-	return (color_hex / 16) << 4 | (color_hex % 16);
-}
 
 // !!!THIS IS OLD AND NEEDS TO BE REPLACED BY ANIC'S IMPLEMENTATION!!!
 // Hex converts to RGB. If RGB is not supported in the terminal
@@ -459,7 +455,7 @@ char *ParseHexString(char *hexstr)
 /* =============================== END OF TERM  ================================== */
 
 /* Get line length, ignoring linefeeds */
-size_t nolflen(char *s)
+size_t NoLfLen(char *s)
 {
 	char *exclude = Tab_stack[file_index].newline;
 	if (!strchr(exclude, '\n')) // Always exclude a newline (\n) even if it's not present
@@ -793,7 +789,7 @@ char *DeleteRow(char **arr, int startpos, size_t arrsize)
 /* ? */
 char *InsertDeletedRow(File_info *tstack)
 {
-	int n = nolflen(tstack->strsave[tstack->ypos]);
+	int n = NoLfLen(tstack->strsave[tstack->ypos]);
 	strncat(tstack->strsave[tstack->ypos - 1], tstack->strsave[tstack->ypos], strlen(tstack->strsave[tstack->ypos])); // Concatenate the next line
 	memset(tstack->strsave[tstack->ypos] + n, 0, BUFFER_X - n);									                          					  // Empty the new line
 
@@ -806,7 +802,7 @@ char *InsertDeletedRow(File_info *tstack)
 	DeleteRow(tstack->strsave, tstack->ypos, BUFFER_X);
 
 	// Decrease the yp pointer by one
-	tstack->xpos = nolflen(tstack->strsave[tstack->ypos]);
+	tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 	last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 
 	return tstack->strsave[tstack->ypos];
