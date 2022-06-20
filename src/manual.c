@@ -18,7 +18,11 @@
 */
 #pragma once
 
-#include "newtrodit_core.h"
+#ifdef _WIN32
+#include "win32/newtrodit_core_win.h"
+#else
+#include "linux/newtrodit_core_linux.h"
+#endif
 #include "newtrodit_syntax.h"
 
 void DisplayLineCount(File_info *tstack, int size, int yps);
@@ -26,7 +30,11 @@ int SaveFile(File_info *tstack);
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty);
 
 #include "newtrodit_gui.c"
-#include "newtrodit_func.c"
+#ifdef _WIN32
+#include "win32/newtrodit_func_win.c"
+#else
+#include "linux/newtrodit_func_linux.c"
+#endif
 #include "newtrodit_api.c"
 
 int DownArrow(int man_line_count)
