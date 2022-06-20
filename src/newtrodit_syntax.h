@@ -372,10 +372,8 @@ void color_line(char *line, int startpos, int override_color)
                     {
                         if (!memcmp(line + i, bps_chars_open[j], strlen(bps_chars_open[j])))
                         {
-                            SetCharColor(strlen(bps_chars_open[j]), bps_pair_colors[Tab_stack[file_index].Syntaxinfo.bracket_pair_count % (sizeof(bps_pair_colors) / sizeof(bps_pair_colors[0]))] + (16 * override_color), (lineCount ? Tab_stack[file_index].linecount_wide : 0) + i, GetConsoleInfo(YCURSOR));
+                            SetCharColor(1, bps_pair_colors[Tab_stack[file_index].Syntaxinfo.bracket_pair_count % (sizeof(bps_pair_colors) / sizeof(bps_pair_colors[0]))] + (16 * override_color), (lineCount ? Tab_stack[file_index].linecount_wide : 0) + i, GetConsoleInfo(YCURSOR));
                             i += strlen(bps_chars_open[j]);
-
-                            break;
                         }
                     }
                 }

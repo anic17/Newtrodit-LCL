@@ -2348,7 +2348,7 @@ int main(int argc, char *argv[])
                  Tab_stack[file_index].Ustack->create_nl = false;
                  Tab_stack[file_index].Ustack->delete_nl = false; */
 
-                bs_tk = tokback_pos(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "()[]{}\t ", "?!");
+                bs_tk = TokBackPos(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], "()[]{}\t ", "?!");
                 if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos] == '\0')
                 {
 

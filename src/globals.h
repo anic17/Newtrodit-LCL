@@ -18,7 +18,7 @@
 */
 
 const char newtrodit_version[] = "0.6";
-const char newtrodit_build_date[] = "15/6/2022";
+const char newtrodit_build_date[] = "20/6/2022";
 const char newtrodit_repository[] = "https://github.com/anic17/Newtrodit";
 char manual_file[MAX_PATH] = "newtrodit.man";
 char settings_file[MAX_PATH] = "newtrodit.config";

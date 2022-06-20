@@ -18,11 +18,7 @@
 */
 #pragma once
 
-#ifdef _WIN32
-#include "win32/newtrodit_core_win.h"
-#else
-#include "linux/newtrodit_core_linux.h"
-#endif
+#include "newtrodit_core.h"
 #include "newtrodit_syntax.h"
 
 void DisplayLineCount(File_info *tstack, int size, int yps);
@@ -30,11 +26,7 @@ int SaveFile(File_info *tstack);
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty);
 
 #include "newtrodit_gui.c"
-#ifdef _WIN32
-#include "win32/newtrodit_func_win.c"
-#else
-#include "linux/newtrodit_func_linux.c"
-#endif
+#include "newtrodit_func.c"
 #include "newtrodit_api.c"
 
 int DownArrow(int man_line_count)
@@ -84,7 +76,7 @@ int NewtroditHelp()
 	FILE *manual = fopen(manual_file, "rb");
 	if (!manual)
 	{
-		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, strlasttok(manual_file, PATHTOKENS)));
+		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, StrLastTok(manual_file, PATHTOKENS)));
 		CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 		getch_n();
 		_chdir(SInf.dir);
