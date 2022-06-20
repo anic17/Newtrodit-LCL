@@ -767,13 +767,15 @@ int main(int argc, char *argv[])
             {
                 if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][0] != '\0')
                 {
-                    //HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
+#ifdef _WIN32
+                    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
                     memcpy(GlobalLock(hMem), Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1); // Copy line to the clipboard
                     GlobalUnlock(hMem);
                     OpenClipboard(0);
                     EmptyClipboard();
                     SetClipboardData(CF_TEXT, hMem);
                     CloseClipboard();
+#endif
                     if (ch == 11 && useOldKeybinds)
                     {
                         if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][0] != '\0')
