@@ -42,7 +42,7 @@ Newtrodit doesn't need any special requirements, it can run on Windows versions 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
 
-Run [`make.bat`](make.bat) if you're Windows, or [`make.sh`](make.sh)if you're using a Linux system. 
+Run [`make.bat`](make.bat) if you're Windows, or [`make.sh`](make.sh) if you're using a Linux system. 
 
 # Contributing
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
