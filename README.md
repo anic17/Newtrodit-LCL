@@ -1,5 +1,5 @@
 <!-- Change this to use a picture in the root directory. Not the bmp -->
-<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/logo_transp.png" align="right" width="100" height="100" />
+<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/logo_transp.png" align="right" width="150" height="150" />
 
 #### [❔ About](https://github.com/anic17/Newtrodit-LCL#about) - [💡 Features](https://github.com/anic17/Newtrodit-LCL#features) - [📖 Requirements](https://github.com/anic17/Newtrodit-LCL#requirements) - [🔨 Build](https://github.com/anic17/Newtrodit-LCL#build)
 
