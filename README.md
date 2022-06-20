@@ -24,13 +24,14 @@ As I was quite new to C, creating Newtrodit was a challenge to see how good I co
 - Line counting
 - Highly configurable
 - Various string manipulation functions such as:
-   - String finding
+   - String finding (case sensitive and insensitive)
    - String replacing
    - ROT13 encoding
    - Uppercase/lowercase conversion
 - Fully configurable syntax highlighting including custom rules
 - Built-in manual
 - Mouse support
+- Can edit files up to 5600 lines
 - Some file utilities:
    - File compare
    - File locating
