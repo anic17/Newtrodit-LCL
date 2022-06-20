@@ -22,6 +22,7 @@ As I was quite new to C, creating Newtrodit was a challenge to see how good I co
 - Fast and light
 - Real time position of cursor
 - Line counting
+- Highly configurable
 - Various string manipulation functions such as:
    - String finding
    - String replacing
