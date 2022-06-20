@@ -36,7 +36,7 @@
 #include <fcntl.h> // _setmode, _fileno
 #include <ctype.h>
 #include <wchar.h> // For UTF-8 support
-#include "dialog.h"
+#include "../dialog.h"
 
 /* =============================== SETTINGS ================================== */
 #define _NEWTRODIT_OLD_SUPPORT 0                 // Toggle support for old versions of Windows (Windows XP and below)
@@ -82,7 +82,7 @@ typedef int bool;
 #define DEBUG
 #endif
 
-#include "globals.h"
+#include "../globals.h"
 
 enum ConsoleQueryList
 {
