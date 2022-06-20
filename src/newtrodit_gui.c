@@ -136,13 +136,17 @@ void ShowBottomMenu()
 	return;
 }
 
-void CursorSettings(int visible, int size)
+void SetCursorSettings(int visible, int size)
 {
+#ifdef _WIN32
 	HANDLE Cursor = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_CURSOR_INFO info;
 	info.dwSize = size;
 	info.bVisible = visible;
 	SetConsoleCursorInfo(Cursor, &info);
+#else
+
+#endif
 }
 
 void NewtroditNameLoad()
@@ -164,7 +168,7 @@ void DisplayCursorPos(int xps, int yps)
 
 void LoadAllNewtrodit()
 {
-	CursorSettings(false, GetConsoleInfo(CURSOR_SIZE)); // Hide cursor to reduce flickering
+	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE)); // Hide cursor to reduce flickering
 	SetColor(bg_color);
 
 	switch(clearAllBuffer)
@@ -189,7 +193,7 @@ void LoadAllNewtrodit()
 	{
 		DisplayLineCount(Tab_stack, YSIZE - 3, 1);
 	}
-	CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 
 	gotoxy(0, 1);
 }
@@ -234,7 +238,7 @@ int QuitProgram(int color_quit)
 	{
 		SetColor(color_quit);
 		ClearScreen();
-		CursorSettings(true, CURSIZE);
+		SetCursorSettings(true, CURSIZE);
 		ExitRoutine(0);
 	}
 	else

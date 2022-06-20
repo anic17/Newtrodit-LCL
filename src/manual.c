@@ -52,8 +52,10 @@ int DownArrow(int man_line_count)
 
 int VTSettings(bool enabled)
 {
+#ifdef _WIN32
 	DWORD lmode; // Process ANSI escape sequences
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
 
 	GetConsoleMode(hStdout, &lmode);
 	if (enabled)
@@ -76,7 +78,7 @@ int NewtroditHelp()
 	SetConsoleTitle("Newtrodit help");
 	SetColor(BG_DEFAULT); // Don't change manual color (Maybe in a future update?)
 
-	CursorSettings(FALSE, GetConsoleInfo(CURSOR_SIZE));
+	CursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
 	ClearScreen();
 
 	TopHelpBar();

@@ -487,6 +487,7 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	tstack->is_modified = false;
 	tstack->is_readonly = false; // We'll check if it's read-only later
 
+#ifdef _WIN32
 	tstack->hFile = CreateFile(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // Open a handle to the file
 	if (tstack->hFile == INVALID_HANDLE_VALUE)
 	{
@@ -500,6 +501,18 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 		tstack->is_readonly = true;
 		c = -2;
 	}
+#else
+	// Get last write time of a file
+	struct stat attr;
+  stat(filename, &attr);
+
+	// TODO: Check if the file was successfully opened
+
+	tstack->fpread_time = attr.st_mtime;
+	tstack->fwrite_time = attr.st_mtime;
+
+	// TODO: Check if a file is readonly
+#endif
 	fclose(fpread);
 	WriteLogFile(join("Successfully loaded the file ", filename));
 
@@ -626,7 +639,7 @@ void FunctionAborted(File_info *tstack)
 	return;
 }
 
-int UpdateScrolledScreen(int linecount, File_info *tstack)
+int UpdateScrolledScreen(File_info *tstack)
 {
 	if (tstack->ypos >= (YSIZE - 3) || horizontalScroll > 0)
 	{
@@ -638,7 +651,7 @@ int UpdateScrolledScreen(int linecount, File_info *tstack)
 	return 0;
 }
 
-int UpdateHomeScrolledScreen(int linecount, File_info *tstack)
+int UpdateHomeScrolledScreen(File_info *tstack)
 {
 	if (tstack->ypos >= (YSIZE - 3))
 	{
@@ -864,13 +877,17 @@ int LocateFiles(int show_dir, char *file, int startpos)
 					FileTimeToSystemTime(&FindFileData.ftLastWriteTime, &st);
 					if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && show_dir)
 					{
-
 						// Time format is "DD/MM/YYYY hh:mm:ss"
+						// LINUX FIX ME :)
+						#ifdef _WIN32
 						printf(" %02d/%02d/%04d %02d:%02d:%02d\t<DIR>\t%14lu\t%.*s\n", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, (FindFileData.nFileSizeHigh * (MAXDWORD+1)) + FindFileData.nFileSizeLow, max_print, FindFileData.cFileName);
+						#endif
 					}
 					else
 					{
+						#ifdef _WIN32
 						printf(" %02d/%02d/%04d %02d:%02d:%02d\t\t%14lu\t%.*s\n", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, (FindFileData.nFileSizeHigh * (MAXDWORD+1)) + FindFileData.nFileSizeLow, max_print, FindFileData.cFileName);
+						#endif
 					}
 					n++;
 				}

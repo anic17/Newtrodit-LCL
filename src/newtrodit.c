@@ -62,7 +62,9 @@ void sigabrt_handler(int signum)
 
 void sigbreak_handler(int signum)
 {
+#ifdef _WIN32
     signal(SIGBREAK, sigbreak_handler);
+#endif
     fflush(stdout);
 }
 
@@ -318,9 +320,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
     return 0;
 }
 
-int main(int argc, char *argv[])
-{
-
+int main(int argc, char *argv[]) {
     // Startup routine code Newtrodit must always execute
     char *startup_info = (char *)malloc(sizeof(char) * MAX_PATH * 2); // *2 for safety
     memset(startup_info, 0, sizeof(char) * MAX_PATH * 2);
@@ -329,35 +329,31 @@ int main(int argc, char *argv[])
     SInf.log_file_name = (char *)calloc(MAX_PATH, sizeof(char));
     SInf.log_file_name = strdup(GetLogFileName());
     WriteLogFile("\nNewtrodit started");
+#ifdef _WIN32
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE), hStdin = GetStdHandle(STD_INPUT_HANDLE);
-
     GetConsoleMode(hStdout, &dwConsoleMode);
     GetConsoleMode(hStdin, &dwStdinMode);
     // Disable wrapping to avoid (or at least reduce) graphical bugs
     WriteLogFile(join("Changing console output mode: ", (SetConsoleMode(hStdout, dwConsoleMode & ~ENABLE_WRAP_AT_EOL_OUTPUT)) ? "Succeeded" : "Failed"));
     WriteLogFile(join("Changing console input mode: ", (SetConsoleMode(hStdin, dwConsoleMode | ENABLE_MOUSE_INPUT | 0x80 | ENABLE_ECHO_INPUT)) ? "Succeeded" : "Failed"));
+#endif
 
     // _setmode(_fileno(stdout), _O_BINARY);
 
     WriteLogFile("Loading startup data");
 
     char *sinf_ptr = (char *)malloc(sizeof(char) * MAX_PATH * 2);
-    if (get_path_directory(startup_info, sinf_ptr) != NULL)
-    {
+    if (get_path_directory(startup_info, sinf_ptr) != NULL) {
         SInf.dir = strdup(_getcwd(NULL, 0));
         SInf.location = strdup(sinf_ptr);
         //_chdir(SInf.location);
     }
-    else
-    {
-
+    else {
         memset(SInf.location, 0, sizeof(char) * MAX_PATH * 2);
     }
 
 #if _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER == 1 && !_NEWTRODIT_OLD_SUPPORT
-
-    if (ReadConsoleBuffer())
-    {
+    if (ReadConsoleBuffer()) {
         SInf.save_buffer = false;
     }
     // Read console buffer, memory will be automatically allocated
@@ -366,14 +362,20 @@ int main(int argc, char *argv[])
 #endif
 
     // Get file date times
+#ifdef _WIN32
     FILETIME tmpTimeRead, tmpTimeWrite;
 
     tmpTimeWrite.dwLowDateTime = 0;
     tmpTimeWrite.dwHighDateTime = 0;
     tmpTimeRead.dwLowDateTime = 0;
     tmpTimeRead.dwHighDateTime = 0;
+#else
+    time_t tmpTimeRead, tmpTimeWrite;
 
-    SInf.argv = argv; // Save only its memory address, not the actual value
+    tmpTimeRead = 0;
+    tmpTimeWrite = 0;
+#endif
+    SInf.argv = argv;     // Save only its memory address, not the actual value
     SInf.argc = argc;
     SInf.xsize = XSIZE;
     SInf.ysize = YSIZE;
@@ -400,31 +402,28 @@ int main(int argc, char *argv[])
     /*     char *run_macro = (char *)malloc(sizeof(char) * MAX_PATH + 1);
      */
 
-    for (int i = 0; i < MAX_TABS; i++)
-    {
+    for (int i = 0; i < MAX_TABS; i++) {
         Tab_stack[i].filename = (char *)calloc(MAX_PATH, sizeof(char));
     }
 
     // Allocate buffer
-
-    if (!AllocateBufferMemory(&Tab_stack[file_index]))
-    {
-
+    if (!AllocateBufferMemory(&Tab_stack[file_index])) {
         printf("%.*s\n", wrapSize, NEWTRODIT_ERROR_OUT_OF_MEMORY);
         ExitRoutine(ENOMEM);
     }
 
     old_open_files = (char **)malloc(MAX_PATH * sizeof(char *));
 
-    for (int i = 1; i < MIN_BUFSIZE; i++)
-    {
+    for (int i = 1; i < MIN_BUFSIZE; i++) {
         old_open_files[i] = (char *)calloc(MAX_PATH, sizeof(char));
     }
 
     run_macro = (char *)malloc(sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
     signal(SIGINT, SIG_IGN);          // Ctrl-C handler
+#ifdef _WIN32
     signal(SIGBREAK, SIG_IGN);        // Ctrl-Break handler
+#endif
     signal(SIGSEGV, sigsegv_handler); // Segmentation fault handler
     signal(SIGABRT, sigabrt_handler); // Abort handler
 
@@ -432,8 +431,7 @@ int main(int argc, char *argv[])
 
     LoadSettings(settings_file, run_macro, &sigsegvScreen, &lineCount, &dev_tools, &Tab_stack[file_index]); // Load settings from settings file
 
-    if (!sigsegvScreen)
-    {
+    if (!sigsegvScreen) {
         signal(SIGSEGV, SIG_DFL);
     }
 
@@ -441,7 +439,9 @@ int main(int argc, char *argv[])
     if (BUFFER_X < MIN_BUFSIZE || BUFFER_Y < MIN_BUFSIZE)
     {
         snprintf(err_msg, MIN_BUFSIZE, "Buffer is too small (Current size is %dx%d and minimim size is %dx%d)", BUFFER_X, BUFFER_Y, MIN_BUFSIZE, MIN_BUFSIZE);
+#ifdef _WIN32
         MessageBox(NULL, err_msg, "Newtrodit", MB_ICONERROR);
+#endif
         fprintf(stderr, "%s", err_msg);
         free(err_msg);
         ExitRoutine(1);
@@ -704,7 +704,9 @@ int main(int argc, char *argv[])
 
         SetDisplayCursorPos(&Tab_stack[file_index]);
 
+#ifdef _WIN32
         GetFileTime(&Tab_stack[file_index].hFile, &tmpTimeRead, NULL, &tmpTimeWrite);
+#endif
 
         ch = GetNewtroditInput(&Tab_stack[file_index]); // Register all input events, not only key presses
 
@@ -720,6 +722,7 @@ int main(int argc, char *argv[])
         // WaitForSingleObject(hStdin, INFINITE);
         // ch = getch(); // Get key pressed
 
+        #ifdef _WIN32
         if (CompareFileTime(&tmpTimeWrite, &Tab_stack[file_index].fwrite_time) == 1)
         {
             Tab_stack[file_index].fwrite_time = tmpTimeWrite;
@@ -732,7 +735,7 @@ int main(int argc, char *argv[])
                 continue;
             }
         }
-
+        #endif
         if (c == -2) // Inbound invalid control key
         {
             ShowBottomMenu();
@@ -1171,11 +1174,13 @@ int main(int argc, char *argv[])
                     open_argv = fopen(Tab_stack[file_index].filename, "rb");
 
                     ReloadFile(&Tab_stack[file_index], open_argv);
+                    #ifdef _WIN32
                     if (GetFileAttributes(Tab_stack[file_index].filename) & FILE_ATTRIBUTE_READONLY)
                     {
                         PrintBottomString(NEWTRODIT_WARNING_READONLY_FILE);
                         c = -2;
                     }
+                    #endif
                 }
                 else
                 {
@@ -1683,7 +1688,6 @@ int main(int argc, char *argv[])
                         Tab_stack[file_index].ypos = i;
 
                         SetDisplayY(&Tab_stack[file_index]); // Calculate scroll position
-                        
                         UpdateScrolledScreen(&Tab_stack[file_index]);
                         gotoxy(find_string_index + (lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
                         SetColor(bg_color >> 4 | 0xe);
@@ -2203,6 +2207,7 @@ int main(int argc, char *argv[])
         }
         if (ch == 22) // ^V
         {
+            #ifdef _WIN32
             if (OpenClipboard(0))
             {
                 buffer_clipboard = (char *)GetClipboardData(CF_TEXT);
@@ -2237,6 +2242,7 @@ int main(int argc, char *argv[])
             CloseClipboard();
             ch = 0;
             continue;
+	          #endif
         }
 
         if (ch == 4) // ^D (Debug tool/dev mode) / S-^D = Toggle dev mode
@@ -2315,7 +2321,7 @@ int main(int argc, char *argv[])
                         Tab_stack[file_index].Ustack->line_pos = Tab_stack[file_index].xpos;
                         Tab_stack[file_index].Ustack->create_nl = false;
                         Tab_stack[file_index].Ustack++->create_nl = false;
-
+			#ifdef _WIN32
                         HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1);
                         memcpy(GlobalLock(hMem), Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1); // Copy line to the clipboard
                         GlobalUnlock(hMem);
@@ -2323,6 +2329,7 @@ int main(int argc, char *argv[])
                         EmptyClipboard();
                         SetClipboardData(CF_TEXT, hMem);
                         CloseClipboard();
+                        #endif
                         memset(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], 0, strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]));
                         ClearPartial((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y, XSIZE - (lineCount ? Tab_stack[file_index].linecount_wide : 0), 1);
                         Tab_stack[file_index].xpos = 0;

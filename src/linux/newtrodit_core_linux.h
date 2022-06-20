@@ -39,11 +39,6 @@
 #include <fcntl.h> // _setmode, _fileno
 #include <wchar.h> // For UTF-8 support
 
-typedef struct FILETIME {
-  unsigned int dwHighDateTime;
-  unsigned int dwLowDateTime;
-} FILETIME_;
-
 /* ================================= SETTINGS ==================================== */
 #define _NEWTRODIT_OLD_SUPPORT 0
 #define DEBUG_MODE 1
@@ -56,8 +51,10 @@ typedef struct FILETIME {
 #define MAX_TABS        48   // Maximum number of files opened at once
 #define MAX_PATH        260
 
+// These need to be changed for linux
 #define VK_TAB     8
 #define VK_RETURN  13
+#define VK_SHIFT   16
 #define VK_CONTROL 17
 #define VK_MENU    18
 #define VK_ESCAPE  27
@@ -241,9 +238,9 @@ typedef struct File_info {
   Undo_stack *Ustack;
   Syntax_info Syntaxinfo;
   Compiler Compilerinfo;
-  void* hFile; // File handle
-	FILETIME fwrite_time;
-	FILETIME fread_time;
+  void* hFile;        // File handle
+  time_t fwrite_time; // When last written to
+  time_t fread_time;  // The time Newtrodit read the file
 } File_info; // File information. This is used to store all the information
              // about the file.
 
@@ -1310,10 +1307,11 @@ int AllocateBufferMemory(File_info *tstack) {
   tstack->is_readonly = false;
   //  tstack->hFile = INVALID_HANDLE_VALUE;
   // Initialize the file time structures
-  //  tstack->fwrite_time.dwHighDateTime = 0;
-  //  tstack->fwrite_time.dwLowDateTime = 0;
-  //  tstack->fread_time.dwHighDateTime = 0;
-  //  tstack->fread_time.dwLowDateTime = 0;
+  
+  /*tstack->fwrite_time.dwHighDateTime = 0;
+  tstack->fwrite_time.dwLowDateTime = 0;
+  tstack->fread_time.dwHighDateTime = 0;
+  tstack->fread_time.dwLowDateTime = 0;*/
   WriteLogFile("Buffer memory successfully allocated");
   return 1;
 }
