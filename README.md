@@ -8,10 +8,10 @@
 Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under the GNU GPL v3.0 licence see [LICENSE](https://github.com/anic17/Newtrodit-LCL/blob/main/LICENSE) *or* [GPL 3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) for more info!
 
 ###### Default Newtrodit theme
-<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png" width="520" height="300">
+<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png" width="521" height="300">
 
 ###### Dark line counting theme
-<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_dark.png" width="520" height="300">
+<img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_dark.png" width="521" height="300">
 
 ## Motives
 &emsp;I once tried to make a clone of the old MS-DOS [EDIT.COM](https://en.wikipedia.org/wiki/MS-DOS_Editor) in batch. Though during the making of it I realized something. It would have been **really** complicated to use batch, and performance issues were starting to appear.
