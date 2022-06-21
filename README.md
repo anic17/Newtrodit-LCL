@@ -54,7 +54,7 @@ Newtrodit doesn't need any special requirements for Windows. It can run on Windo
 
 Screen mode isn't fully supported and you may find features missing, and if you are using a dumb terminal Newtrodit will fail to run.
 
-If you don't know what any of that stuff mean you don't have to worry about it. Newtrodit should run just fine on your Terminal :)
+If you don't know what any of that stuff mean you don't have to worry about it. Newtrodit should run just fine on your terminal.
 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
@@ -79,7 +79,7 @@ You can join the Program Dream Discord server here and talk about everything rel
 <hr>
 
 ## Credits
-Thanks to all the contributers who helped make Newtrodit possible!
+Thanks to all the contributers who helped make Newtrodit possible! ❤️
 
 * [anic17](https://github.com/anic17) — Creator of Newtrodit, main developer
 * [ZackeryRSmith](https://github.com/ZackeryRSmith) — Creator of Newtrodit-LCL, helped a lot on the development
