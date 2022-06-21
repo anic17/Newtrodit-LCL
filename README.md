@@ -37,7 +37,24 @@ As I was quite new to C, creating Newtrodit was a challenge to see how good I co
    - File locating
 
 # Requirements
-Newtrodit doesn't need any special requirements, it can run on Windows versions starting from Windows XP to Windows 11, and on any recent Linux system supporting VT100 terminal emulators.
+Newtrodit doesn't need any special requirements for Windows. It can run on Windows versions starting from Windows XP to Windows 11. When running Newtrodit on linux you require any semi-modern terminal emulator, and a shell supporting VT520 or DECSCUSR sequences. A list of tested Linux terminals on the three most popular shells can be found below
+
+###### NOTE: when Newtrodit actully works on Linux I'll fill this out 
+| _Tested terminals_ | **BASH 5.1** | **ZSH 5.8** | **FISH 3.1** |
+|--------------------|:------------:|:-----------:|:------------:|
+| GNOME Terminal     |       x      |      x      |       x      |
+| Terminator         |       x      |      x      |       x      |
+| Konsole            |       x      |      x      |       x      |
+| Guake              |       x      |      x      |       x      |
+| XTERM              |       x      |      x      |       x      |
+| RXVT               |       x      |      x      |       x      |
+| Alacritty          |       x      |      x      |       x      |
+
+*If you Terminal emulator wasn't listed don't worry*. Any terminal using the following backends are supported: xterm-color, xterm-16color, and xterm-256color. Other backends that fall under the XTerm specifications are: putty, konsole, Eterm, rxvt, gnome. 
+
+Screen mode isn't fully supported and you may find features missing, and if you are using a dumb terminal Newtrodit will fail to run.
+
+If you don't know what any of that stuff mean you don't have to worry about it. Newtrodit should run just fine on your Terminal :)
 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
