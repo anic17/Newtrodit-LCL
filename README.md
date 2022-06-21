@@ -50,11 +50,11 @@ Newtrodit doesn't need any special requirements for Windows. It can run on Windo
 | RXVT               |       x      |      x      |       x      |
 | Alacritty          |       x      |      x      |       x      |
 
-*If you Terminal emulator wasn't listed don't worry*. Any terminal using the following backends are supported: xterm-color, xterm-16color, and xterm-256color. Other backends that fall under the XTerm specifications are: putty, konsole, Eterm, rxvt, gnome. 
+*If your Terminal emulator wasn't listed don't worry*. Any terminal using the following backends are supported: xterm-color, xterm-16color, and xterm-256color. Other backends that fall under the XTerm specifications are: putty, konsole, Eterm, rxvt, gnome. 
 
 Screen mode isn't fully supported and you may find features missing, and if you are using a dumb terminal Newtrodit will fail to run.
 
-If you don't know what any of that stuff mean you don't have to worry about it. Newtrodit should run just fine on your terminal.
+If you don't know what any of that stuff means, you don't have to worry about it. Newtrodit should run just fine on your terminal.
 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
