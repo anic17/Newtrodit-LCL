@@ -1132,81 +1132,83 @@ char *GetLogFileName() {
 
 int GetConsoleInfo(int type) {
   switch (type) {
-  // Console width in cells
-  case XWINDOW: {
-    /*
-    struct winsize w;
-    ioctl(0, TIOCGWINSZ, &w);
+    // Console width in cells
+    case XWINDOW: {
+      /*
+      struct winsize w;
+      ioctl(0, TIOCGWINSZ, &w);
 
-    return w.ws_col;
-    */
-  }
+      return w.ws_col;
+      */
+      break;
+    }
 
-  // Console height in cells
-  case YWINDOW: {
-    /*
-    struct winsize w;
-    ioctl(0, TIOCGWINSZ, &w);
+    // Console height in cells
+    case YWINDOW: {
+      /*
+      struct winsize w;
+      ioctl(0, TIOCGWINSZ, &w);
 
-    return w.ws_row;
-    */
-  }
+      return w.ws_row;
+      */
+      break;
+    }
 
-  // Buffer width in cells
-  case XBUFFER_SIZE:
-    return 0;
+    // Buffer width in cells
+    case XBUFFER_SIZE:
+      return 0;
 
-  // Buffer height in cells
-  case YBUFFER_SIZE:
-    return 0;
+    // Buffer height in cells
+    case YBUFFER_SIZE:
+      return 0;
 
-  // Cursor's X position
-  case XCURSOR: {
-    EchoOff();
-    CanonOff();
-    int *X, *Y;
-    printf("\x1B[6n");
-    scanf("\x1B[%d;%dR", X, Y);
-    return *X;
-  }
+    // Cursor's X position
+    case XCURSOR: {
+      EchoOff();
+      CanonOff();
+      int *X, *Y;
+      printf("\x1B[6n");
+      scanf("\x1B[%d;%dR", X, Y);
+      return *X;
+    }
 
-  // Cursor's Y position
-  case YCURSOR: {
-    EchoOff();
-    CanonOff();
-    int *X, *Y;
-    printf("\x1B[6n");
-    scanf("\x1B[%d;%dR", X, Y);
-    return *Y;
-  }
+    // Cursor's Y position
+    case YCURSOR: {
+      EchoOff();
+      CanonOff();
+      int *X, *Y;
+      printf("\x1B[6n");
+      scanf("\x1B[%d;%dR", X, Y);
+      return *Y;
+    }
 
-  // Undocumented
-  case COLOR:
-    return 0;
+    // Undocumented
+    case COLOR:
+      return 0;
 
-  // Console's number of columns -- May be wrong
-  case XMAX_WINDOW: {
-    struct winsize w;
-    ioctl(0, TIOCGWINSZ, &w);
+    // Console's number of columns -- May be wrong
+    case XMAX_WINDOW: {
+      struct winsize w;
+      ioctl(0, TIOCGWINSZ, &w);
 
-    return w.ws_col;
-  }
+      return w.ws_col;
+    }
 
-  // Console's number of rows -- May be wrong
-  case YMAX_WINDOW: {
-    struct winsize w;
-    ioctl(0, TIOCGWINSZ, &w);
+    // Console's number of rows -- May be wrong
+    case YMAX_WINDOW: {
+      struct winsize w;
+      ioctl(0, TIOCGWINSZ, &w);
 
-    return w.ws_row;
-  }
+      return w.ws_row;
+    }
 
-  // Undocumented
-  case CURSOR_SIZE:
-    return 0;
+    // Undocumented
+    case CURSOR_SIZE:
+      return 0;
 
-  // Returns true or false depending on cursor visibility
-  case CURSOR_VISIBLE:
-    return 0;
+    // Returns true or false depending on cursor visibility
+    case CURSOR_VISIBLE:
+      return 0;
   }
 }
 

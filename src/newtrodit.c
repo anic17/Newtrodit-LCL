@@ -1452,7 +1452,7 @@ int main(int argc, char *argv[]) {
                 insertChar = !insertChar;
                 if (cursorSizeInsert)
                 {
-                    insertChar ? CursorSettings(true, 80) : CursorSettings(true, CURSIZE);
+                    insertChar ? SetCursorSettings(true, 80) : SetCursorSettings(true, CURSIZE);
                 }
 
                 break;

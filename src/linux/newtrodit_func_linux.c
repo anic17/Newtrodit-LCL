@@ -172,7 +172,7 @@ int WriteBuffer(FILE *fstream, File_info *tstack)
 
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 {
-	CursorSettings(false, GetConsoleInfo(CURSORSIZE));
+	SetCursorSettings(false, GetConsoleInfo(CURSORSIZE));
 	if (lineCount)
 	{
 		LoadLineCount(tstack, tstack->ypos, starty);
@@ -215,7 +215,7 @@ int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 			}
 		}
 	}
-	CursorSettings(true, GetConsoleInfo(CURSORSIZE));
+	SetCursorSettings(true, GetConsoleInfo(CURSORSIZE));
 
 	return 0;
 }
@@ -521,7 +521,6 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 
 int NewFile(File_info *tstack) // ^N = New file
 {
-
 	if (open_files < MAX_TABS)
 	{
 		if (file_index + 1 < open_files)

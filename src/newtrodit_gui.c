@@ -189,8 +189,7 @@ void LoadAllNewtrodit()
 	DisplayTabIndex(&Tab_stack[file_index]);
 	RightAlignNewline();
 	ShowBottomMenu();
-	if (lineCount)
-	{
+	if (lineCount) {
 		DisplayLineCount(Tab_stack, YSIZE - 3, 1);
 	}
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
