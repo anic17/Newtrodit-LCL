@@ -37,7 +37,9 @@ As I was quite new to C, creating Newtrodit was a challenge to see how good I co
    - File locating
 
 # Requirements
-Newtrodit doesn't need any special requirements for Windows. It can run on Windows versions starting from Windows XP to Windows 11. When running Newtrodit on linux you require any semi-modern terminal emulator, and a shell supporting VT520 or DECSCUSR sequences. For some features you also require to have a POSIX compilent system (which most linux distro's are). 
+Newtrodit doesn't need any special requirements for Windows. It can run on Windows versions starting from Windows XP to Windows 11. 
+
+When running Newtrodit on linux you require any semi-modern terminal emulator, and a shell supporting VT520 or DECSCUSR sequences. For some features, you also require a POSIX compilent system (which most linux distro's are). 
 
 A list of tested Linux terminals on the three most popular shells can be found below
 ###### NOTE: when Newtrodit actully works on Linux I'll fill this out 
