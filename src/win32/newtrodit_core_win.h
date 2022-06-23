@@ -577,7 +577,7 @@ char *PrintTab(int tab_count)
 /* ? */
 char *strncpy_n(char *dest, const char *src, size_t count)
 {
-	// Better version that strncpy() because it always null terminates strings
+	// Better version that strncpy() because it always null te/rminates strings
 
 	if (count)
 	{

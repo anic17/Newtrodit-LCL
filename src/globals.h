@@ -47,7 +47,7 @@ int fullPathTitle = true;
 int useOldKeybinds = false; // Bool to use old keybinds (^X instead of ^Q, ^K instead of ^X)
 int longPositionDisplay = false;
 int generalUtf8Preference = false;
-int partialMouseSupport = true; // Partial mouse support, only changes cursor position when mouse is clicked
+int partialMouseSupport = false; // Partial mouse support, only changes cursor position when mouse is clicked
 int showMillisecondsInTime = false; // Show milliseconds in time insert function (F6)
 int useLogFile = true;
 int createNewLogFiles = false; // Create new log files when logging is enabled
@@ -111,7 +111,7 @@ char *run_macro, *last_known_exception;
 #define SEPARATORS DEFAULT_SEPARATORS
 
 char syntax_separators[512] = SEPARATORS;
-char syntax_filename[_MAX_PATH] = "";
+char syntax_filename[MAX_PATH] = "";
 
 int default_color = DEFAULT_SYNTAX_COLOR;
 int comment_color = DEFAULT_COMMENT_COLOR;

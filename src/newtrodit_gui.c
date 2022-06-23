@@ -145,7 +145,28 @@ void SetCursorSettings(int visible, int size)
 	info.bVisible = visible;
 	SetConsoleCursorInfo(Cursor, &info);
 #else
+	/* 	info.dwSize = size;
+		info.bVisible = visible; */
 
+	// Set cursor size
+	if (size > 50)
+	{
+		printf("\x1B[\x31 q"); // Blinking block
+	}
+	else
+	{
+		printf("\x1B[\x33 q"); // Blinking underline
+	}
+
+	// Set cursor visibility
+	if (visible)
+	{
+		printf("\x1B[?25h");
+	}
+	else
+	{
+		printf("\x1B[?25l");
+	}
 #endif
 }
 
@@ -161,9 +182,10 @@ void DisplayCursorPos(int xps, int yps)
 {
 	size_t len = strlen(NEWTRODIT_DIALOG_BOTTOM_HELP);
 	gotoxy(len, BOTTOM);
+	
 	printf(longPositionDisplay ? "Line %d, Column %d" : "Ln %d, Col %d", yps, xps + 1); // +1 because it's zero indexed
-	ClearPartial(GetConsoleInfo(XCURSOR), BOTTOM, wrapSize - GetConsoleInfo(XCURSOR), 1);
-
+	
+	//ClearPartial(GetConsoleInfo(XCURSOR), BOTTOM, wrapSize - GetConsoleInfo(XCURSOR), 1);
 }
 
 void LoadAllNewtrodit()
@@ -171,25 +193,25 @@ void LoadAllNewtrodit()
 	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE)); // Hide cursor to reduce flickering
 	SetColor(bg_color);
 
-	switch(clearAllBuffer)
+	switch (clearAllBuffer)
 	{
-		case 0:
-			ClearScreen();
-			break;
-		case 1:
-			ClearPartial(0, 0, XSIZE, YSIZE);
-			break;
-		default: // We will be using this when we want a full screen refresh from outside the load function
-			break;
+	case 0:
+		ClearScreen();
+		break;
+	case 1:
+		ClearPartial(0, 0, XSIZE, YSIZE);
+		break;
+	default: // We will be using this when we want a full screen refresh from outside the load function
+		break;
 	}
-
 
 	NewtroditNameLoad();
 	CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
 	DisplayTabIndex(&Tab_stack[file_index]);
 	RightAlignNewline();
 	ShowBottomMenu();
-	if (lineCount) {
+	if (lineCount)
+	{
 		DisplayLineCount(Tab_stack, YSIZE - 3, 1);
 	}
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
@@ -200,8 +222,18 @@ void LoadAllNewtrodit()
 void NewtroditCrash(char *crash_reason, int crash_retval)
 {
 	signal(SIGSEGV, SIG_DFL); // Reset signal handler to avoid infinite crash loops
-	int get_le = GetLastError();
-	char *crash_desc = (LPSTR)GetErrorDescription(get_le);
+	int get_le = 0;
+
+	char *crash_desc;
+
+#ifdef _WIN32
+	get_le = GetLastError();
+
+	crash_desc = (LPSTR)GetErrorDescription(get_le);
+#else
+	get_le = errno;
+	crash_desc = (char *)GetErrorDescription(get_le);
+#endif
 	crash_desc[strcspn(crash_desc, "\r")] = 0;
 	LoadAllNewtrodit(); // Just to not have a blank screen and make it scary
 	int errno_temp = errno;
@@ -215,7 +247,7 @@ void NewtroditCrash(char *crash_reason, int crash_retval)
 	{
 		printf("%s ", SInf.argv[i]); // Prints the command line arguments
 	}
-	
+
 	printf("\n\nEditing file '%s', line %d, column %d\nTabs open: %d, current tab: %d\n\nReason: %s\n\nPress enter to exit...\n", Tab_stack[file_index].filename, Tab_stack[file_index].ypos, Tab_stack[file_index].xpos + 1, open_files, file_index + 1, crash_reason);
 	DisplayCursor(true);
 	getchar();
@@ -253,15 +285,15 @@ void UpdateTitle(File_info *tstack)
 	if (tstack->is_saved && fullPathTitle)
 	{
 		char *path = tstack->filename;
-		GetFullPathName(path, MAX_PATH, tstack->filename, NULL);
+		tstack->filename = strdup(FullPath(path));
 	}
 	if (tstack->is_modified)
 	{
-		SetConsoleTitle(join(join("Newtrodit - ", tstack->filename), " (Modified)"));
+		SetTitle(join(join("Newtrodit - ", tstack->filename), " (Modified)"));
 	}
 	else
 	{
-		SetConsoleTitle(join("Newtrodit - ", tstack->filename));
+		SetTitle(join("Newtrodit - ", tstack->filename));
 	}
 }
 

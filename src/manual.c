@@ -50,12 +50,11 @@ int DownArrow(int man_line_count)
 	return man_line_count;
 }
 
-int VTSettings(bool enabled)
+int SetVTSettings(bool enabled)
 {
 #ifdef _WIN32
 	DWORD lmode; // Process ANSI escape sequences
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-#endif
 
 	GetConsoleMode(hStdout, &lmode);
 	if (enabled)
@@ -68,17 +67,20 @@ int VTSettings(bool enabled)
 		lmode &= ~ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
 	}
 	return SetConsoleMode(hStdout, lmode);
+#else
+
+#endif
 }
 
 int NewtroditHelp()
 {
 
-	_chdir(SInf.location);
+	chdir(SInf.location);
 
-	SetConsoleTitle("Newtrodit help");
+	SetTitle("Newtrodit help");
 	SetColor(BG_DEFAULT); // Don't change manual color (Maybe in a future update?)
 
-	CursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
+	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
 	ClearScreen();
 
 	TopHelpBar();
@@ -87,9 +89,9 @@ int NewtroditHelp()
 	if (!manual)
 	{
 		PrintBottomString(join(NEWTRODIT_ERROR_MISSING_MANUAL, StrLastTok(manual_file, PATHTOKENS)));
-		CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+		SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 		getch_n();
-		_chdir(SInf.dir);
+		chdir(SInf.dir);
 
 		return 1;
 	}
@@ -98,7 +100,7 @@ int NewtroditHelp()
 	{
 		PrintBottomString(NEWTRODIT_ERROR_MANUAL_TOO_BIG);
 		getch_n();
-		_chdir(SInf.dir);
+		chdir(SInf.dir);
 
 		return 1;
 	}
@@ -106,17 +108,17 @@ int NewtroditHelp()
 	{
 		PrintBottomString("The answer for any problem is 42. No need to ask me."); // Easter egg.
 		getch_n();
-		_chdir(SInf.dir);
+		chdir(SInf.dir);
 
 		return 0;
 	}
 
 
-	if (!VTSettings(true) && !RGB24bit) // Process ANSI escape sequences and check if the console supports ANSI escape sequences
+	if (!SetVTSettings(true) && !RGB24bit) // Process ANSI escape sequences and check if the console supports ANSI escape sequences
 	{
 		PrintBottomString(NEWTRODIT_ERROR_LOADING_MANUAL);
 		getch_n();
-		_chdir(SInf.dir);
+		chdir(SInf.dir);
 
 		return 1;
 	}
@@ -144,8 +146,8 @@ int NewtroditHelp()
 		{
 			PrintBottomString(join(NEWTRODIT_ERROR_INVALID_MANUAL, manual_file));
 			getch_n();
-			VTSettings(false);
-			_chdir(SInf.dir);
+			SetVTSettings(false);
+			chdir(SInf.dir);
 
 			return 1;
 		}
@@ -153,8 +155,8 @@ int NewtroditHelp()
 		{
 			PrintBottomString(NEWTRODIT_ERROR_MANUAL_TOO_BIG);
 			getch_n();
-			VTSettings(false);
-			_chdir(SInf.dir);
+			SetVTSettings(false);
+			chdir(SInf.dir);
 
 			return 1;
 		}
@@ -257,16 +259,16 @@ int NewtroditHelp()
 			switch (manual_ch)
 			{
 			case 24: // ^X
-				CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-				VTSettings(false);
-				_chdir(SInf.dir);
+				SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+				SetVTSettings(false);
+				chdir(SInf.dir);
 
 				return 0;
 				break;
 			case 27: // ESC
-				CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-				VTSettings(false);
-				_chdir(SInf.dir);
+				SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+				SetVTSettings(false);
+				chdir(SInf.dir);
 
 				return 0;
 				break;
@@ -283,13 +285,13 @@ int NewtroditHelp()
 				}
 				if (manual_ch == 59) // F1
 				{
-					CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-					VTSettings(false);
+					SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+					SetVTSettings(false);
 					for (int i = 0; i < MANUAL_BUFFER_Y; i++)
 					{
 						free(manual_buf[i]);
 					}
-					_chdir(SInf.dir);
+					chdir(SInf.dir);
 
 					return 0;
 				}
@@ -405,9 +407,9 @@ int NewtroditHelp()
 	{
 		free(manual_buf[i]);
 	}
-	CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-	VTSettings(false);
-	_chdir(SInf.dir);
+	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+	SetVTSettings(false);
+	chdir(SInf.dir);
 
 	return 0;
 }
