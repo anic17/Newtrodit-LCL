@@ -9,7 +9,7 @@ int main() {
   // \x35  - Blinking bar
   // \x36  - Steady   bar
 
-  printf("\x1b[\x33 q");
+  printf("\x1B[\x36 q");
 
   // used to hold the script open
   getchar();
