@@ -625,7 +625,7 @@ int main(int argc, char *argv[])
                 if (!open_argv)
                 {
 
-                    fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
+                    fprintf(stderr, "%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
                     WriteLogFile(join(NEWTRODIT_FS_FILE_OPEN_ERR, Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)));
                     ExitRoutine(errno);
                 }
@@ -646,7 +646,7 @@ int main(int argc, char *argv[])
             }
             if (LoadFile(&Tab_stack[file_index], Tab_stack[file_index].filename, open_argv) <= -1)
             {
-                fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
+                fprintf(stderr, "%s\n", (char *)Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
                 return errno;
             }
 
