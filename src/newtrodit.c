@@ -42,8 +42,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <dirent.h>
-#include <string.h>
-
 #include "manual.c"
 
 void sigsegv_handler(int signum)
@@ -60,14 +58,6 @@ void sigabrt_handler(int signum)
     NewtroditCrash(join("Abort signal. Signum code: ", itoa_n(signum)), errno);
     fflush(stdout);
     exit(errno);
-}
-
-void sigbreak_handler(int signum)
-{
-#ifdef _WIN32
-    signal(SIGBREAK, sigbreak_handler);
-#endif
-    fflush(stdout);
 }
 
 int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *linecount, int *devmode, File_info *tstack)
@@ -154,7 +144,6 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     {
                         int cp = atoi(token);
 #ifdef _WIN32
-
                         SetConsoleOutputCP(cp);
 #else
                         // Linux TODO
@@ -199,11 +188,11 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     if (!strcmp(setting_list[i], "cursize"))
                     {
                         CURSIZE = atoi(token);
+                        SetCursorSettings(true, CURSIZE);
                     }
 
                     if (!strcmp(setting_list[i], "devmode"))
                     {
-
                         atoi(token) ? (*devmode = true) : (*devmode = false);
                     }
                     if (!strcmp(setting_list[i], "linecount"))
@@ -339,23 +328,21 @@ int main(int argc, char *argv[])
     startup_info = argv[0]; // Program name
 #endif
     // Generate log file name
-
     SInf.log_file_name = (char *)calloc(MAX_PATH, sizeof(char));
     SInf.log_file_name = strdup(GetLogFileName());
-    SInf.location = (char *)calloc(sizeof(char), MAX_PATH * 2);
-
     WriteLogFile("\nNewtrodit started");
 
 #ifdef _WIN32
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE), hStdin = GetStdHandle(STD_INPUT_HANDLE);
+
     GetConsoleMode(hStdout, &dwConsoleMode);
     GetConsoleMode(hStdin, &dwStdinMode);
     // Disable wrapping to avoid (or at least reduce) graphical bugs
     WriteLogFile(join("Changing console output mode: ", (SetConsoleMode(hStdout, dwConsoleMode & ~ENABLE_WRAP_AT_EOL_OUTPUT)) ? "Succeeded" : "Failed"));
     WriteLogFile(join("Changing console input mode: ", (SetConsoleMode(hStdin, dwConsoleMode | ENABLE_MOUSE_INPUT | 0x80 | ENABLE_ECHO_INPUT)) ? "Succeeded" : "Failed"));
-#endif
 
     WriteLogFile("Loading startup data");
+#endif
     char *sinf_ptr = (char *)malloc(sizeof(char) * MAX_PATH * 2);
     if (get_path_directory(startup_info, sinf_ptr) != NULL)
     {
@@ -365,6 +352,7 @@ int main(int argc, char *argv[])
     }
     else
     {
+
         memset(SInf.location, 0, sizeof(char) * MAX_PATH * 2);
     }
 
@@ -377,14 +365,12 @@ int main(int argc, char *argv[])
     // Get file date times
 #ifdef _WIN32
     FILETIME tmpTimeRead, tmpTimeWrite;
-
     tmpTimeWrite.dwLowDateTime = 0;
     tmpTimeWrite.dwHighDateTime = 0;
     tmpTimeRead.dwLowDateTime = 0;
     tmpTimeRead.dwHighDateTime = 0;
 #else
     time_t tmpTimeRead, tmpTimeWrite;
-
     tmpTimeRead = 0;
     tmpTimeWrite = 0;
 #endif
@@ -402,7 +388,6 @@ int main(int argc, char *argv[])
 
     wrapSize = XSIZE - LINECOUNT_WIDE;
     goto_len = strlen(itoa_n(BUFFER_Y));
-
     clearAllBuffer = true;
     LINECOUNT_WIDE = LINECOUNT_WIDE_; // Set line count wide
 
@@ -423,8 +408,10 @@ int main(int argc, char *argv[])
     }
 
     // Allocate buffer
+
     if (!AllocateBufferMemory(&Tab_stack[file_index]))
     {
+
         printf("%.*s\n", wrapSize, NEWTRODIT_ERROR_OUT_OF_MEMORY);
         ExitRoutine(ENOMEM);
     }
@@ -438,14 +425,14 @@ int main(int argc, char *argv[])
 
     run_macro = (char *)malloc(sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
-    //signal(SIGINT, SIG_IGN); // Ctrl-C handler
 #ifdef _WIN32
     signal(SIGBREAK, SIG_IGN); // Ctrl-Break handler
+#else
+    signal(SIGTSTP, SIG_IGN); // Ctrl-Z handler
 #endif
-    signal(SIGTSTP, SIG_IGN); // Ctrl-Z handler (For Linux)
+    signal(SIGINT, SIG_IGN);          // Ctrl-C handler
     signal(SIGSEGV, sigsegv_handler); // Segmentation fault handler
     signal(SIGABRT, sigabrt_handler); // Abort handler
-
 
     memset(run_macro, 0, sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
@@ -618,8 +605,6 @@ int main(int argc, char *argv[])
             file_arguments[file_arguments_count] = arg_parse;
         }
     }
-
-
     if (file_arguments_count > 0)
     {
         open_files = file_arguments_count;
@@ -640,7 +625,7 @@ int main(int argc, char *argv[])
                 if (!open_argv)
                 {
 
-                    fprintf(stderr, "%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
+                    fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
                     WriteLogFile(join(NEWTRODIT_FS_FILE_OPEN_ERR, Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)));
                     ExitRoutine(errno);
                 }
@@ -661,7 +646,7 @@ int main(int argc, char *argv[])
             }
             if (LoadFile(&Tab_stack[file_index], Tab_stack[file_index].filename, open_argv) <= -1)
             {
-                fprintf(stderr, "%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
+                fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
                 return errno;
             }
 
@@ -697,11 +682,6 @@ int main(int argc, char *argv[])
     {
         WriteLogFile("Mouse support enabled");
     }
-    /* while(1)
-    {
-        ch = getch();
-        printf("[%d,%c]", ch, ch);
-    } */
     while (1)
     {
 
@@ -732,12 +712,9 @@ int main(int argc, char *argv[])
 
         SetDisplayCursorPos(&Tab_stack[file_index]);
 
-#ifdef _WIN32
         GetFileTime(&Tab_stack[file_index].hFile, &tmpTimeRead, NULL, &tmpTimeWrite);
-#endif
 
-        ch = getch();
-        //ch = GetNewtroditInput(&Tab_stack[file_index]); // Register all input events, not only key presses
+        ch = GetNewtroditInput(&Tab_stack[file_index]); // Register all input events, not only key presses
 
         if (Tab_stack[file_index].xpos < 0 || Tab_stack[file_index].ypos < 1)
         {
@@ -748,9 +725,6 @@ int main(int argc, char *argv[])
             Tab_stack[file_index].xpos = 0;
             Tab_stack[file_index].ypos = 1;
         }
-        // WaitForSingleObject(hStdin, INFINITE);
-        // ch = getch(); // Get key pressed
-
 #ifdef _WIN32
         if (CompareFileTime(&tmpTimeWrite, &Tab_stack[file_index].fwrite_time) == 1)
         {
@@ -765,6 +739,7 @@ int main(int argc, char *argv[])
             }
         }
 #endif
+
         if (c == -2) // Inbound invalid control key
         {
             ShowBottomMenu();
@@ -912,7 +887,12 @@ int main(int argc, char *argv[])
 
             if (!CheckKey(VK_SHIFT))
             {
-                               // List all files in the directory
+                ToggleOption(&lineCount, NEWTRODIT_LINE_COUNT, true);
+                c = -2;
+            }
+            else
+            {
+                // List all files in the directory
                 memset(locate_file, 0, sizeof(locate_file));
                 PrintBottomString(NEWTRODIT_PROMPT_LOCATE_FILE);
                 fgets(locate_file, sizeof locate_file, stdin);
@@ -932,12 +912,6 @@ int main(int argc, char *argv[])
                 ClearPartial(0, 1, XSIZE, YSIZE - 2);
                 DisplayFileContent(&Tab_stack[file_index], stdout, 0);
             }
-            else
-            {
-            	ToggleOption(&lineCount, NEWTRODIT_LINE_COUNT, true);
-                c = -2;
-            }
-            
             continue;
         }
 
@@ -1222,18 +1196,16 @@ int main(int argc, char *argv[])
             continue;
         }
 
-
-	// WIN: 224
-	// Check for special chars
-        if (ch == 27)
+        if (ch == ESCARROW) // Special keys: 224
         {
+
             ch = getch();
             c = -32;
 
             switch (ch)
             {
 
-            case 72:
+            case UP:
                 // Up arrow
                 if (Tab_stack[file_index].ypos > 1)
                 {
@@ -1257,7 +1229,7 @@ int main(int argc, char *argv[])
                 UpdateScrolledScreen(&Tab_stack[file_index]);
                 break;
 
-            case 75:
+            case LEFT:
                 // Left arrow
 
                 if (Tab_stack[file_index].xpos >= 1)
@@ -1295,7 +1267,7 @@ int main(int argc, char *argv[])
                 }
 
                 break;
-            case 77:
+            case RIGHT:
                 // Right arrow
                 if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos] != '\0')
                 {
@@ -1363,7 +1335,7 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 80:
+            case DOWN:
                 // Down arrow
                 n2 = Tab_stack[file_index].ypos;
                 if (Tab_stack[file_index].ypos < BUFFER_Y - 1)
@@ -1372,8 +1344,6 @@ int main(int argc, char *argv[])
                     {
                         if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1][Tab_stack[file_index].xpos] == '\0')
                         {
-                            SetTitle("Executed DOWN ARROW");
-                            getch_n();
                             Tab_stack[file_index].xpos = NoLfLen(Tab_stack[file_index].strsave[++Tab_stack[file_index].ypos]) + (TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1], "\t") * TAB_WIDE); // Add tab wide
                         }
                         else
@@ -1408,7 +1378,7 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 71:
+            case HOME:
                 // HOME key
                 Tab_stack[file_index].xpos = 0;
 #ifdef HORIZONTAL_SCROLL
@@ -1420,7 +1390,7 @@ int main(int argc, char *argv[])
                 }
 #endif
                 break;
-            case 79:
+            case END:
                 // END key
                 n = Tab_stack[file_index].xpos;
                 Tab_stack[file_index].xpos = NoLfLen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
@@ -1441,7 +1411,7 @@ int main(int argc, char *argv[])
                     UpdateScrolledScreen(&Tab_stack[file_index]);
                 }
                 break;
-            case 117:
+            case CTRLEND:
                 // ^END key
                 for (int i = 1; i < BUFFER_Y; i++)
                 {
@@ -1470,7 +1440,7 @@ int main(int argc, char *argv[])
                 UpdateScrolledScreen(&Tab_stack[file_index]);
 
                 break;
-            case 119:
+            case CTRLHOME:
                 // ^HOME key
                 horizontalScroll = 0;
                 UpdateHomeScrolledScreen(&Tab_stack[file_index]);
@@ -1479,7 +1449,7 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 82:
+            case INS:
                 // INS key
                 insertChar = !insertChar;
                 if (cursorSizeInsert)
@@ -1489,7 +1459,7 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 83: // DEL and S-DEL
+            case DEL: // DEL and S-DEL
 
                 if (CheckKey(VK_SHIFT)) // S-DEL
                 {
@@ -1539,7 +1509,7 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 133: // F11 (fullscreen)
+            case F11: // F11 (fullscreen)
 
                 if (dev_tools)
                 {
@@ -1558,7 +1528,7 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 134: // F12
+            case F12: // F12
                 if (dev_tools)
                 {
                     printf("[%d:%d %d:%d]", XSIZE, YSIZE, old_x_size, old_y_size);
@@ -1584,7 +1554,7 @@ int main(int argc, char *argv[])
                 continue;
             }
         }
-        if ((ch == ENTER && CheckKey(VK_RETURN)) || (ch == ENTER && _NEWTRODIT_OLD_SUPPORT)) // Newline character: CR (13)
+        if ((ch == 13 && CheckKey(VK_RETURN)) || (ch == 13 && _NEWTRODIT_OLD_SUPPORT)) // Newline character: CR (13)
         {
             if (Tab_stack[file_index].ypos < Tab_stack[file_index].bufy - 1)
             {
@@ -1720,6 +1690,7 @@ int main(int argc, char *argv[])
                         Tab_stack[file_index].ypos = i;
 
                         SetDisplayY(&Tab_stack[file_index]); // Calculate scroll position
+
                         UpdateScrolledScreen(&Tab_stack[file_index]);
                         gotoxy(find_string_index + (lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
                         SetColor(bg_color >> 4 | 0xe);
@@ -1909,13 +1880,14 @@ int main(int argc, char *argv[])
                 {
                     if (!Tab_stack[file_index].is_untitled && Tab_stack[file_index].is_saved)
                     {
-#ifdef _WIN32
 
+#ifdef _WIN32
                         GetFullPathName(Tab_stack[file_index].filename, sizeof(Tab_stack[file_index].filename), tmp, NULL);
 #else
                         tmp = strdup(FullPath(Tab_stack[file_index].filename));
                         StartProcess(tmp);
 #endif
+                        StartProcess(tmp);
                     }
                 }
                 else
@@ -2280,9 +2252,9 @@ int main(int argc, char *argv[])
                 DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
             }
             CloseClipboard();
+#endif
             ch = 0;
             continue;
-#endif
         }
 
         if (ch == 4) // ^D (Debug tool/dev mode) / S-^D = Toggle dev mode
@@ -2378,27 +2350,12 @@ int main(int argc, char *argv[])
                     ch = 0;
                     continue;
                 }
-                else
-                {
-                    QuitProgram(SInf.color);
-                    ShowBottomMenu();
-                    SetColor(bg_color);
-                    RestoreConsoleBuffer();
-                    ch = 0;
-                }
             }
 
             continue;
         }
-
         if (ch == 127) // ^BS
         {
-            UpdateRow(DeleteCharLeft(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos));
-
-            printf("\x1B[0G");
-
-            continue;
-
             if (Tab_stack[file_index].xpos > 0)
             {
                 /*  Tab_stack[file_index].Ustack->size = strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1;
@@ -2504,7 +2461,7 @@ int main(int argc, char *argv[])
         {
             CountBufferLines(&Tab_stack[file_index]);
 
-            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%u lines). Syntax highlighting: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (unsigned int)Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
+            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%lu lines). Syntax highlighting: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (size_t)Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
             PrintBottomString(tmp);
             c = -2;
             ch = 0;
@@ -2547,7 +2504,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 8 && !CheckKey(0x08) && CheckKey(VK_CONTROL)) // ^H = Replace string / S-^H = Same as F1 (opens help)
+        if (ch == 8 && !CheckKey(BS) && CheckKey(VK_CONTROL)) // ^H = Replace string / S-^H = Same as F1 (opens help)
         {
             ch = 0;
 
@@ -2620,7 +2577,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if ((ch == 8 && _NEWTRODIT_OLD_SUPPORT == 1) || (ch == 8 && CheckKey(0x08) && !CheckKey(VK_CONTROL))) // BS key (Avoiding Control-H)
+        if ((ch == BS && _NEWTRODIT_OLD_SUPPORT == 1) || (ch == BS && CheckKey(BS) && !CheckKey(VK_CONTROL))) // BS key (Avoiding Control-H)
         {
 
             c = -8; // Negative to avoid conflict
@@ -2708,7 +2665,7 @@ int main(int argc, char *argv[])
         else
 
         {
-            if (ch > 31 || (ch == 9 && CheckKey(0x09))) // Printable character
+            if (ch > 31 || (ch == TAB && CheckKey(TAB))) // Printable character
             {
                 if (!Tab_stack[file_index].is_modified)
                 {
@@ -2733,7 +2690,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                if (CheckKey(VK_TAB) && ch == 9) // TAB key
+                if (CheckKey(VK_TAB) && ch == TAB) // TAB key
                 {
                     if (convertTabtoSpaces)
                     {
@@ -2770,9 +2727,7 @@ int main(int argc, char *argv[])
                                 gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
                                 // I'm using an intermediate variable to make the line shorter
                                 n = strrpbrk(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].Syntaxinfo.separators);
-#ifdef _WIN32
                                 color_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], 0, Tab_stack[file_index].Syntaxinfo.override_color);
-#endif
                             }
                         }
                     }
@@ -2780,7 +2735,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                if (ch != 0 && ch <= 26 && ch != 13)
+                if (ch != 0 && ch <= 26 && ch != ENTER)
                 {
                     memset(inbound_ctrl_key, 0, sizeof(inbound_ctrl_key)); // Clear the string for the next key
                     if (CheckKey(VK_MENU))
@@ -2833,7 +2788,6 @@ int main(int argc, char *argv[])
             }
         }
     }
-
     SetColor(SInf.color);
     return 0;
 }
