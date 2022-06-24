@@ -30,7 +30,7 @@
 
 #include <Windows.h>
 #include <conio.h>
-#include <direct.h>  // _access()
+#include <direct.h>	 // _access()
 #include <process.h> // _beginthread()
 
 #include <fcntl.h> // _setmode, _fileno
@@ -39,7 +39,7 @@
 #include "../dialog.h"
 
 /* =============================== SETTINGS ================================== */
-#define _NEWTRODIT_OLD_SUPPORT 0                 // Toggle support for old versions of Windows (Windows XP and below)
+#define _NEWTRODIT_OLD_SUPPORT 0				 // Toggle support for old versions of Windows (Windows XP and below)
 #define _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER 0 // Toggle support for restoring buffer on exit (currently experimental)
 #define DEBUG_MODE 1
 
@@ -48,8 +48,10 @@
 #define LINECOUNT_WIDE_ 4 // To backup original value
 #define MIN_BUFSIZE 256
 #define LINE_MAX 8192
-#define MAX_TABS 48       // Maximum number of files opened at once
-#define _MAX_PATH 260
+#define MAX_TABS 48 // Maximum number of files opened at once
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
 
 #if 0
 #define HORIZONTAL_SCROLL
@@ -114,7 +116,7 @@ int GetConsoleInfo(int type);
 int BUFFER_X = DEFAULT_BUFFER_X;
 int BUFFER_Y = 5600;
 
-int BUFFER_INCREMENT = 150;         // How much to increment the buffer size by when it is full.
+int BUFFER_INCREMENT = 150;			// How much to increment the buffer size by when it is full.
 int BUFFER_INCREMENT_LOADFILE = 50; // When loading a file, how much to increment the buffer size by.
 /* ============================ END OF SETTINGS ============================== */
 
@@ -123,14 +125,18 @@ int BUFFER_INCREMENT_LOADFILE = 50; // When loading a file, how much to incremen
 #define DISABLE_NEWLINE_AUTO_RETURN 0x0008
 #endif
 
-#define PATHTOKENS "\\/"
+#ifdef _WIN32
+char PATHTOKENS[] = "\\/";
+#else
+char PATHTOKENS[] = "/";
+#endif
 
 typedef struct Startup_info
 {
-	char *location;       // Location of the file (full path)
-	char *dir;		        // Directory that is changed with 'cd' or '_chdir'
-	int xsize;		        // X size of the window
-	int ysize;		        // Y size of the window
+	char *location; // Location of the file (full path)
+	char *dir;		// Directory that is changed with 'cd' or 'chdir'
+	int xsize;		// X size of the window
+	int ysize;		// Y size of the window
 	int xbuf;
 	int ybuf;
 	int color;
@@ -219,12 +225,12 @@ typedef struct File_info
 	int topmost_display_y; // Used for scrolling
 	int last_pos_scroll;   // Last X position before scrolling
 
-	bool scrolled_x;       // If the cursor is scrolled to the right
-	bool scrolled_y;       // If the file is scrolled vertically
+	bool scrolled_x; // If the cursor is scrolled to the right
+	bool scrolled_y; // If the file is scrolled vertically
 
-	char **strsave;        // Buffer to store the file
-	int **tabcount;        // Number of tabs in the line
-	int **linesize;        // Size of the line
+	char **strsave; // Buffer to store the file
+	int **tabcount; // Number of tabs in the line
+	int **linesize; // Size of the line
 	size_t linecount;
 	size_t linecount_wide;
 	long long size;
@@ -401,9 +407,9 @@ void SetConsoleSize(int xsize, int ysize)
 {
 	char *esc;
 	int r, g, b;
- 	r = ((color_hex >> 16) & 0xFF) / 255.0; // Extract the RR byte
- 	g = ((color_hex >> 8) & 0xFF) / 255.0;  // Extract the GG byte
- 	b = ((color_hex) & 0xFF) / 255.0;       // Extract the BB byte
+	r = ((color_hex >> 16) & 0xFF) / 255.0; // Extract the RR byte
+	g = ((color_hex >> 8) & 0xFF) / 255.0;  // Extract the GG byte
+	b = ((color_hex) & 0xFF) / 255.0;       // Extract the BB byte
 	if (!layer) {
 		asprintf(&esc, "\x1B[48;2;%d;%d;%dm", r, g, b);
 	} else {
@@ -450,7 +456,6 @@ char *ParseHexString(char *hexstr)
 		}
 	}
 }
-
 
 /* =============================== END OF TERM  ================================== */
 
@@ -563,7 +568,6 @@ int TokBackPos(char *s, char *p, char *p2)
 	return 0;
 }
 
-
 /* Print tab of set size? */
 char *PrintTab(int tab_count)
 {
@@ -577,7 +581,7 @@ char *PrintTab(int tab_count)
 /* ? */
 char *strncpy_n(char *dest, const char *src, size_t count)
 {
-	// Better version that strncpy() because it always null te/rminates strings
+	// Better version that strncpy() because it always null terminates strings
 
 	if (count)
 	{
@@ -615,7 +619,6 @@ int FindString(char *str, char *find)
 	char *ptr = strstr(str, find);
 	return (ptr) ? (ptr - str) : -1;
 }
-
 
 /* ? */
 // Pretty sure this just removes quotes on a string?
@@ -689,7 +692,7 @@ char *strlwr(char *s)
 char *InsertChar(char *str, char c, int pos)
 {
 	char *new_str = (char *)malloc(strlen(str) + 8); // For safety
-	if(!new_str)
+	if (!new_str)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 		return NULL;
@@ -707,7 +710,7 @@ char *InsertChar(char *str, char c, int pos)
 char *InsertStr(char *s1, char *s2, int pos)
 {
 	char *new_str = (char *)malloc(strlen(s1) + 8); // For safety
-if(!new_str)
+	if (!new_str)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 		return NULL;
@@ -726,7 +729,7 @@ if(!new_str)
 char *DeleteChar(char *str, int pos)
 {
 	char *new_str = (char *)malloc(strlen(str));
-	if(!new_str)
+	if (!new_str)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 		return NULL;
@@ -750,7 +753,7 @@ char *DeleteChar(char *str, int pos)
 char *DeleteCharLeft(char *str, int pos)
 {
 	char *new_str = (char *)malloc(strlen(str) + 1);
-if(!new_str)
+	if (!new_str)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 		return NULL;
@@ -791,7 +794,7 @@ char *InsertDeletedRow(File_info *tstack)
 {
 	int n = NoLfLen(tstack->strsave[tstack->ypos]);
 	strncat(tstack->strsave[tstack->ypos - 1], tstack->strsave[tstack->ypos], strlen(tstack->strsave[tstack->ypos])); // Concatenate the next line
-	memset(tstack->strsave[tstack->ypos] + n, 0, BUFFER_X - n);									                          					  // Empty the new line
+	memset(tstack->strsave[tstack->ypos] + n, 0, BUFFER_X - n);														  // Empty the new line
 
 	if (tstack->ypos != 1)
 	{
@@ -812,10 +815,10 @@ char *InsertDeletedRow(File_info *tstack)
 char *RemoveTab(char *s)
 {
 	char *new_s = (char *)malloc(strlen(s) + 1);
-	if(!new_s)
+	if (!new_s)
 	{
-			last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-			return NULL;
+		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
+		return NULL;
 	}
 	int n = TokCount(s, "\t");
 	int tmp;
@@ -845,7 +848,6 @@ char *StringToJSON(char *s)
 
 /* ========================= END OF STRING MANIPULATION ========================== */
 
-
 /* =================================== SYSTEM  =================================== */
 
 /* Checks the physical state of a key (Pressed or not pressed) */
@@ -857,8 +859,8 @@ int CheckKey(int keycode)
 /* Get absolute path to a file on the drive */
 char *FullPath(char *file)
 {
-	char *path = (char *)calloc(_MAX_PATH, sizeof(char));
-	GetFullPathName(file, _MAX_PATH * sizeof(char), path, NULL);
+	char *path = (char *)calloc(MAX_PATH, sizeof(char));
+	GetFullPathName(file, MAX_PATH * sizeof(char), path, NULL);
 	return path;
 }
 
@@ -876,9 +878,12 @@ char *GetTime(bool display_ms)
 	SYSTEMTIME lt;
 
 	GetLocalTime(&lt);
-	if (display_ms) {
+	if (display_ms)
+	{
 		snprintf(time_buf, DEFAULT_ALLOC_SIZE, "%02d:%02d:%02d,%03d %02d/%02d/%04d", lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds, lt.wDay, lt.wMonth, lt.wYear);
-	} else {
+	}
+	else
+	{
 		snprintf(time_buf, DEFAULT_ALLOC_SIZE, "%02d:%02d:%02d %02d/%02d/%04d", lt.wHour, lt.wMinute, lt.wSecond, lt.wDay, lt.wMonth, lt.wYear);
 	}
 
@@ -892,7 +897,8 @@ int WriteLogFile(char *data)
 	{
 		char *filename = SInf.log_file_name; // Get the log file name
 		FILE *f = fopen(filename, "a");
-		if (!f) {
+		if (!f)
+		{
 			return errno;
 		}
 		fprintf(f, "[%s] %s\n", GetTime(true), data);
@@ -943,8 +949,6 @@ int getch_n()
 
 /* ================================ END OF SYSTEM  =============================== */
 
-
-
 char *itoa_n(int n)
 {
 	char *s = (char *)malloc(DEFAULT_ALLOC_SIZE);
@@ -978,15 +982,15 @@ char *lltoa_n(long long n) // https://stackoverflow.com/a/18858248/12613647
 	return &buf[i + 1];
 }
 
-
-
-
-
 char *ProgInfo()
 {
-
 	char *info = (char *)malloc(1024);
-	snprintf(info, 1024, "Newtrodit %s [Built at %s %s]", newtrodit_version, newtrodit_build_date, __TIME__);
+#ifdef _WIN32
+	char lcl[] = " ";
+#else
+	char lcl[] = "-LCL ";
+#endif
+	snprintf(info, 1024, "Newtrodit%s%s [Built at %s %s]", lcl, newtrodit_version, newtrodit_build_date, __TIME__);
 	return info;
 }
 
@@ -1002,8 +1006,6 @@ int ValidSize()
 	last_known_exception = NEWTRODIT_ERROR_WINDOW_TOO_SMALL;
 	return 1;
 }
-
-
 
 int YesNoPrompt()
 {
@@ -1051,7 +1053,8 @@ void *realloc_n(void *old, size_t old_sz, size_t new_sz)
 {
 	void *new = malloc(new_sz);
 	if (!new)
-	{	last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
+	{
+		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 
 		return NULL;
 	}
@@ -1059,7 +1062,6 @@ void *realloc_n(void *old, size_t old_sz, size_t new_sz)
 	free(old);
 	return new;
 }
-
 
 char *ErrorMessage(int err, const char *filename)
 {
@@ -1142,20 +1144,30 @@ void StartProcess(char *command_line)
 	return;
 }
 
+int SetTitle(char *s)
+{
+	SetConsoleTitle(s);
+}
 
 char *get_path_directory(char *path, char *dest) // Not a WinAPI function
 {
 	strcpy(dest, path);
-	int tmp_int = TokLastPos(path, "\\");
+
+	int tmp_int = TokLastPos(path, PATHTOKENS);
+
 	if (tmp_int != -1)
 	{
 
-		memset(dest + tmp_int, 0, _MAX_PATH - tmp_int);
-
-		if (dest[strlen(dest) - 1] != '\\')
+		for (int i = 0; i < strlen(PATHTOKENS); i++)
 		{
-			dest[strlen(dest)] = '\\';
+			if (dest[strlen(dest) - 1] != PATHTOKENS[i])
+			{
+				dest[strlen(dest)] = PATHTOKENS[i];
+			}
 		}
+
+		memset(dest + tmp_int, 0, MAX_PATH - tmp_int);
+
 		return dest;
 	}
 	else
@@ -1169,37 +1181,32 @@ void print_box_char()
 	printf("\u2610");
 }
 
-
-
 char *GetLogFileName()
 {
 	SYSTEMTIME lt;
 
 	GetLocalTime(&lt);
 
-	char *buf = (char *)malloc(_MAX_PATH + 1);
-	memset(buf, 0, _MAX_PATH + 1);
-	char *dirloc = (char *)malloc(_MAX_PATH + 1);
-	GetModuleFileName(NULL, buf, _MAX_PATH);
+	char *buf = (char *)calloc(sizeof(char), MAX_PATH + 1);
+	char *dirloc = (char *)calloc(sizeof(char), MAX_PATH + 1);
+	GetModuleFileName(NULL, buf, MAX_PATH);
 	get_path_directory(buf, dirloc);
 	if (createNewLogFiles)
 	{
 
-		snprintf(buf, _MAX_PATH, "%snewtrodit_%04d-%02d-%02d.%02d.%02d.%02d,%03d.log", dirloc, lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
+		snprintf(buf, MAX_PATH, "%snewtrodit_%04d-%02d-%02d.%02d.%02d.%02d,%03d.log", dirloc, lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 	}
 	else
 	{
-		snprintf(buf, _MAX_PATH, "%snewtrodit.log");
+		snprintf(buf, MAX_PATH, "%snewtrodit.log");
 	}
 	return buf;
 }
-
 
 /*
  *   I've put some of the bigger functions here.
  * Makes scrolling through the code much easier
  */
-
 
 int GetConsoleInfo(int type)
 {
@@ -1264,7 +1271,6 @@ int GetConsoleInfo(int type)
 		return 1;
 	}
 }
-
 
 int AllocateBufferMemory(File_info *tstack)
 {
