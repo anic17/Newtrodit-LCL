@@ -42,6 +42,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <dirent.h>
+#include <string.h>
+#include "linux/newtrodit_core_linux.h"
 #include "manual.c"
 
 void sigsegv_handler(int signum)
@@ -368,8 +370,7 @@ int main(int argc, char *argv[])
 
 #if _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER == 1 && !_NEWTRODIT_OLD_SUPPORT
 #ifndef _WIN32
-    //  EnterAltConsoleBuffer();
-
+    EnterAltConsoleBuffer();
 #endif
 #endif
 
@@ -398,7 +399,7 @@ int main(int argc, char *argv[])
     {
         ExitRoutine(1);
     } */
-    
+
     wrapSize = XSIZE - LINECOUNT_WIDE;
     goto_len = strlen(itoa_n(BUFFER_Y));
 
@@ -427,7 +428,7 @@ int main(int argc, char *argv[])
         printf("%.*s\n", wrapSize, NEWTRODIT_ERROR_OUT_OF_MEMORY);
         ExitRoutine(ENOMEM);
     }
-    
+
     old_open_files = (char **)malloc(MAX_PATH * sizeof(char *));
 
     for (int i = 1; i < MIN_BUFSIZE; i++)
@@ -444,7 +445,7 @@ int main(int argc, char *argv[])
     signal(SIGTSTP, SIG_IGN); // Ctrl-Z handler (For Linux)
     signal(SIGSEGV, sigsegv_handler); // Segmentation fault handler
     signal(SIGABRT, sigabrt_handler); // Abort handler
-    
+
 
     memset(run_macro, 0, sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
@@ -639,7 +640,7 @@ int main(int argc, char *argv[])
                 if (!open_argv)
                 {
 
-                    fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
+                    fprintf(stderr, "%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)); // Hard-coded hack
                     WriteLogFile(join(NEWTRODIT_FS_FILE_OPEN_ERR, Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename)));
                     ExitRoutine(errno);
                 }
@@ -660,7 +661,7 @@ int main(int argc, char *argv[])
             }
             if (LoadFile(&Tab_stack[file_index], Tab_stack[file_index].filename, open_argv) <= -1)
             {
-                fprintf(stderr, "%s%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
+                fprintf(stderr, "%s\n", Substring(0, strlen(NEWTRODIT_FS_FILE_OPEN_ERR) - 1, Tab_stack[file_index].filename));
                 return errno;
             }
 
@@ -699,7 +700,7 @@ int main(int argc, char *argv[])
     /* while(1)
     {
         ch = getch();
-        printf("[%d,%c]", ch, ch); 
+        printf("[%d,%c]", ch, ch);
     } */
     while (1)
     {
@@ -911,12 +912,7 @@ int main(int argc, char *argv[])
 
             if (!CheckKey(VK_SHIFT))
             {
-                ToggleOption(&lineCount, NEWTRODIT_LINE_COUNT, true);
-                c = -2;
-            }
-            else
-            {
-                // List all files in the directory
+                               // List all files in the directory
                 memset(locate_file, 0, sizeof(locate_file));
                 PrintBottomString(NEWTRODIT_PROMPT_LOCATE_FILE);
                 fgets(locate_file, sizeof locate_file, stdin);
@@ -936,6 +932,12 @@ int main(int argc, char *argv[])
                 ClearPartial(0, 1, XSIZE, YSIZE - 2);
                 DisplayFileContent(&Tab_stack[file_index], stdout, 0);
             }
+            else
+            {
+            	ToggleOption(&lineCount, NEWTRODIT_LINE_COUNT, true);
+                c = -2;
+            }
+            
             continue;
         }
 
@@ -1220,9 +1222,11 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 0xE0) // Special keys: 224
-        {
 
+	// WIN: 224
+	// Check for special chars
+        if (ch == 27)
+        {
             ch = getch();
             c = -32;
 
@@ -2374,13 +2378,27 @@ int main(int argc, char *argv[])
                     ch = 0;
                     continue;
                 }
+                else
+                {
+                    QuitProgram(SInf.color);
+                    ShowBottomMenu();
+                    SetColor(bg_color);
+                    RestoreConsoleBuffer();
+                    ch = 0;
+                }
             }
 
             continue;
         }
 
-        if (ch == 127 ) // ^BS
+        if (ch == 127) // ^BS
         {
+            UpdateRow(DeleteCharLeft(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos));
+
+            printf("\x1B[0G");
+
+            continue;
+
             if (Tab_stack[file_index].xpos > 0)
             {
                 /*  Tab_stack[file_index].Ustack->size = strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1;
@@ -2422,7 +2440,7 @@ int main(int argc, char *argv[])
                         {
                             if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos] == 9)
                             {
-                                snprintf(tmp, DEFAULT_ALLOC_SIZE, "%s%s%s", memset(ptr, 0, TAB_WIDE), memset(ptr, ' ', TAB_WIDE), memset(ptr, 0, TAB_WIDE));
+                                snprintf(tmp, DEFAULT_ALLOC_SIZE, "%s%s%s", (char *)memset(ptr, 0, TAB_WIDE), (char *)memset(ptr, ' ', TAB_WIDE), (char *)memset(ptr, 0, TAB_WIDE));
                                 fputs(tmp, stdout);
                             }
                             else
@@ -2486,7 +2504,7 @@ int main(int argc, char *argv[])
         {
             CountBufferLines(&Tab_stack[file_index]);
 
-            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%u lines). Syntax highlighting: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
+            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%u lines). Syntax highlighting: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (unsigned int)Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
             PrintBottomString(tmp);
             c = -2;
             ch = 0;
