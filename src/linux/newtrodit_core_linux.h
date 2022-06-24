@@ -324,7 +324,7 @@ char *HexToAnsi(int num)
 }
 
 /* reads from keypress, returns keycode */
-int getch(void)
+int getch()
 {
     char buf = 0;
     struct termios old = {0}, new = {0};
@@ -332,7 +332,6 @@ int getch(void)
     if (tcgetattr(0, &old) < 0 || tcgetattr(0, &new) < 0)
     {
         perror("tcsetattr()");
-
     }
 
     new.c_lflag &= ~(ICANON | ISIG | ECHO);
@@ -554,10 +553,9 @@ char *ParseHexString(char *hexstr)
 size_t NoLfLen(char *s)
 {
   char *exclude = Tab_stack[file_index].newline;
-  if (!strchr(exclude,
-              '\n')) // Always exclude a newline (\n) even if it's not present
+  if (!strchr(exclude, '\n')) // Always exclude a newline (\n) even if it's not present
   {
-    strncat(exclude, "\n", 1);
+    strncat(exclude, "\n", 2);
   }
   size_t len = 0;
   while (*s)
@@ -908,6 +906,10 @@ char *InsertDeletedRow(File_info *tstack)
   return tstack->strsave[tstack->ypos];
 }
 
+void UpdateRow(char *row) {
+  printf("\x1B[2K\x1B[0G%s", row);
+}
+
 /* Replace all tabs with 8 spaces and return another string */
 char *RemoveTab(char *s)
 {
@@ -917,10 +919,10 @@ char *RemoveTab(char *s)
     last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
     return NULL;
   }
-  int n = TokCount(s, "\t");
+  int n = TokCount(s, (char *)"\t");
   int tmp;
 
-  new_s = ReplaceString(s, "\t", PrintTab(TAB_WIDE), &tmp);
+  new_s = ReplaceString(s, (char *)"\t", PrintTab(TAB_WIDE), &tmp);
   printf("%s", new_s);
   return new_s;
 }
