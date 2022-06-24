@@ -51,7 +51,6 @@
 #define MAX_TABS 48 // Maximum number of files opened at once
 #define MAX_PATH 260
 
-// These need to be changed for linux
 #define VK_TAB 8
 #define VK_RETURN 13
 #define VK_SHIFT 16
@@ -132,7 +131,7 @@ int BUFFER_INCREMENT_LOADFILE = 50; // When loading a file, how much to incremen
 #endif
 
 #ifdef _WIN32
-const char PATHTOKENS[] = "\\/";
+char PATHTOKENS[] = "\\/";
 #else
 char PATHTOKENS[] = "/";
 #endif
@@ -153,11 +152,9 @@ typedef struct Startup_info
   char *log_file_name;
   struct cursor
   {
-
     int x;
     int y;
   } cursor;
-
 } Startup_info; // Startup data when Newtrodit is started
 
 typedef struct Undo_stack
@@ -255,7 +252,6 @@ typedef struct File_info
   time_t fread_time;  // The time Newtrodit read the file
 } File_info;          // File information. This is used to store all the information
                       // about the file.
-
 Startup_info SInf;
 File_info Tab_stack[MAX_TABS];
 
@@ -268,7 +264,6 @@ void EchoOff()
   tcsetattr(1, TCSADRAIN, &term);
   fflush(stdout);
 }
-
 void EchoOn()
 {
   struct termios term;
@@ -277,7 +272,6 @@ void EchoOn()
   tcsetattr(1, TCSADRAIN, &term);
   fflush(stdout);
 }
-
 void CanonOn()
 {
   struct termios term;
@@ -286,7 +280,6 @@ void CanonOn()
   tcsetattr(1, TCSADRAIN, &term);
   fflush(stdout);
 }
-
 void CanonOff()
 {
   struct termios term;
@@ -321,31 +314,28 @@ char* HexToAnsi(int num)
     return buf;
 }
 
-/* reads from keypress, returns keycode */
+/* reads from keypress, doesn't echo */
 int getch()
 {
-    char buf = 0;
-    struct termios old = {0}, new = {0};
-    fflush(stdout);
-    if (tcgetattr(0, &old) < 0 || tcgetattr(0, &new) < 0)
-    {
-        perror("tcsetattr()");
-    }
-
-    new.c_lflag &= ~(ICANON | ISIG | ECHO);
-    new.c_iflag = 0;
-    new.c_cc[VMIN] = 1;
-    new.c_cc[VTIME] = 0;
-    if (tcsetattr(0, TCSAFLUSH, &new) < 0)
-        perror("tcsetattr ICANON");
-    if (read(0, &buf, 1) < 0)
-        perror("read()");
-    if (tcsetattr(0, TCSADRAIN, &old) < 0)
-        perror("tcsetattr ~ICANON");
-    return buf;
+  char buf = 0;
+  struct termios old = {0}, new = {0};
+  fflush(stdout);
+  if (tcgetattr(0, &old) < 0 || tcgetattr(0, &new) < 0)
+  {
+    perror("tcsetattr()");
+  }
+  new.c_lflag &= ~(ICANON | ISIG | ECHO);
+  new.c_iflag = 0;
+  new.c_cc[VMIN] = 1;
+  new.c_cc[VTIME] = 0;
+  if (tcsetattr(0, TCSAFLUSH, &new) < 0)
+    perror("tcsetattr ICANON");
+  if (read(0, &buf, 1) < 0)
+    perror("read()");
+  if (tcsetattr(0, TCSADRAIN, &old) < 0)
+    perror("tcsetattr ~ICANON");
+  return buf;
 }
-
-
 
 /* reads from keypress, echoes */
 int getche(void)
@@ -437,7 +427,6 @@ void ClearPartial(int x, int y, int width, int height) // Clears a section of th
 {
   CanonOn();
   EchoOn();
-
   gotoxy(x, y);
   for (int i = 0; i < height + 1; i++)
   {
@@ -551,9 +540,10 @@ char *ParseHexString(char *hexstr)
 size_t NoLfLen(char *s)
 {
   char *exclude = Tab_stack[file_index].newline;
-  if (!strchr(exclude, '\n')) // Always exclude a newline (\n) even if it's not present
+  if (!strchr(exclude,
+              '\n')) // Always exclude a newline (\n) even if it's not present
   {
-    strncat(exclude, "\n", 2);
+    strncat(exclude, "\n", 1);
   }
   size_t len = 0;
   while (*s)
@@ -904,7 +894,8 @@ char *InsertDeletedRow(File_info *tstack)
   return tstack->strsave[tstack->ypos];
 }
 
-void UpdateRow(char *row) {
+void UpdateRow(char *row)
+{
   printf("\x1B[2K\x1B[0G%s", row);
 }
 
@@ -919,7 +910,6 @@ char *RemoveTab(char *s)
   }
   int n = TokCount(s, (char *)"\t");
   int tmp;
-
   new_s = ReplaceString(s, (char *)"\t", PrintTab(TAB_WIDE), &tmp);
   printf("%s", new_s);
   return new_s;
@@ -1089,10 +1079,13 @@ char *lltoa_n(long long n) // https://stackoverflow.com/a/18858248/12613647
 
 char *ProgInfo()
 {
-
   char *info = (char *)malloc(1024);
-  snprintf(info, 1024, "Newtrodit %s [Built at %s %s]", newtrodit_version,
-           newtrodit_build_date, __TIME__);
+#ifdef _WIN32
+  char lcl[] = " ";
+#else
+  char lcl[] = "-LCL ";
+#endif
+  snprintf(info, 1024, "Newtrodit%s%s [Built at %s %s]", lcl, newtrodit_version, newtrodit_build_date, __TIME__);
   return info;
 }
 
@@ -1236,10 +1229,10 @@ char *GetErrorDescription(unsigned int error)
 #endif
 
 // Start a process to what?
-
 void StartProcess(char *command_line)
 {
 #ifdef _WIN32
+
   STARTUPINFO si;
   PROCESS_INFORMATION pinf;
   ZeroMemory(&si, sizeof(si));
@@ -1255,29 +1248,21 @@ void StartProcess(char *command_line)
   }
   CloseHandle(pinf.hProcess);
   CloseHandle(pinf.hThread);
-  return;
 #endif
-  // Linux TODO
-}
 
+  return;
+}
 int SetTitle(char *s)
 {
-#ifdef _WIN32
-  SetConsoleTitle(s);
-#else
 // Linux TODO
-#endif
 }
 
 char *get_path_directory(char *path, char *dest) // Not a WinAPI function
 {
   strcpy(dest, path);
-
   int tmp_int = TokLastPos(path, PATHTOKENS);
-
   if (tmp_int != -1)
   {
-
     for (int i = 0; i < strlen(PATHTOKENS); i++)
     {
       if (dest[strlen(dest) - 1] != PATHTOKENS[i])
@@ -1285,9 +1270,7 @@ char *get_path_directory(char *path, char *dest) // Not a WinAPI function
         dest[strlen(dest)] = PATHTOKENS[i];
       }
     }
-
     memset(dest + tmp_int, 0, MAX_PATH - tmp_int);
-
     return dest;
   }
   else
@@ -1317,35 +1300,25 @@ int GetConsoleInfo(int type)
   // Console width in cells
   case XWINDOW:
   {
-
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-
     return w.ws_col;
-
     break;
   }
-
   // Console height in cells
   case YWINDOW:
   {
-
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-
     return w.ws_row;
-
     break;
   }
-
   // Buffer width in cells
   case XBUFFER_SIZE:
     return 0;
-
   // Buffer height in cells
   case YBUFFER_SIZE:
     return 0;
-
   // Cursor's X position
   case XCURSOR:
   {
@@ -1356,7 +1329,6 @@ int GetConsoleInfo(int type)
     scanf("\x1B[%d;%dR", X, Y);
     return *X;
   }
-
   // Cursor's Y position
   case YCURSOR:
   {
@@ -1367,33 +1339,26 @@ int GetConsoleInfo(int type)
     scanf("\x1B[%d;%dR", X, Y);
     return *Y;
   }
-
   // Undocumented
   case COLOR:
     return 0;
-
   // Console's number of columns -- May be wrong
   case XMAX_WINDOW:
   {
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-
     return w.ws_col;
   }
-
   // Console's number of rows -- May be wrong
   case YMAX_WINDOW:
   {
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-
     return w.ws_row;
   }
-
   // Undocumented
   case CURSOR_SIZE:
     return 0;
-
   // Returns true or false depending on cursor visibility
   case CURSOR_VISIBLE:
     return 0;
@@ -1403,7 +1368,6 @@ int GetConsoleInfo(int type)
 int AllocateBufferMemory(File_info *tstack)
 {
   WriteLogFile((char *)"Allocating buffer memory");
-
   tstack->strsave = (char **)calloc(sizeof(char *), BUFFER_Y);
   tstack->tabcount = (int **)malloc(sizeof(int *) * BUFFER_Y);
   tstack->linesize = (int **)malloc(sizeof(int *) * BUFFER_Y);
@@ -1419,22 +1383,18 @@ int AllocateBufferMemory(File_info *tstack)
     if (!tstack->strsave[i] || !tstack->tabcount[i])
     {
       last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-
       WriteLogFile((char *)"Failed to allocate buffer memory");
-
       return 0;
     }
   }
   tstack->Ustack = 0; // Initialize the undo stack
   tstack->newline = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
   tstack->newline = strdup(DEFAULT_NL);
-
   tstack->Compilerinfo.path = (char *)calloc(MAX_PATH, sizeof(char));
   tstack->Compilerinfo.flags = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
   tstack->Compilerinfo.output = (char *)calloc(MAX_PATH, sizeof(char));
   tstack->Compilerinfo.path = strdup(DEFAULT_COMPILER);
   tstack->Compilerinfo.flags = strdup(DEFAULT_COMPILER_FLAGS);
-
   tstack->Syntaxinfo.syntax_lang = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
   tstack->Syntaxinfo.syntax_file = (char *)calloc(MAX_PATH, sizeof(char));
   tstack->Syntaxinfo.separators = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
@@ -1448,14 +1408,12 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->Syntaxinfo.capital_min = DEFAULT_CAPITAL_MIN_LEN;
   tstack->Syntaxinfo.capital_enabled = capitalMinEnabled;
   tstack->Syntaxinfo.override_color = 0; // No override color
-
   tstack->Syntaxinfo.quote_color = DEFAULT_QUOTE_COLOR;
   tstack->Syntaxinfo.default_color = DEFAULT_SYNTAX_COLOR;
   tstack->Syntaxinfo.comment_color = DEFAULT_COMMENT_COLOR;
   tstack->Syntaxinfo.keyword_count = 0; // TODO: Initialize the keyword array
   tstack->Syntaxinfo.keywords = (char **)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(char *));
   tstack->Syntaxinfo.color = (int *)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(int));
-
   for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
   {
     tstack->Syntaxinfo.keywords[i] = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
@@ -1463,19 +1421,16 @@ int AllocateBufferMemory(File_info *tstack)
     tstack->Syntaxinfo.color[i] = (int)calloc(1, sizeof(int));
     tstack->Syntaxinfo.color[i] = keywords[i].color;
   }
-
   tstack->Syntaxinfo.multi_line_comment = false;
   tstack->Syntaxinfo.bracket_pair_count = 0;
   tstack->Syntaxinfo.parenthesis_pair_count = 0;
   tstack->Syntaxinfo.square_bracket_pair_count = 0;
-
   tstack->linecount_wide = LINECOUNT_WIDE;
   tstack->filename = (char *)calloc(MAX_PATH, sizeof(char));
   if (!tstack->filename)
   {
     WriteLogFile((char *)"Failed to allocate buffer memory");
     last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-
     return 0;
   }
   tstack->filename = (char *)filename_text_;
@@ -1494,7 +1449,6 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->topmost_display_y = 1;
   tstack->is_readonly = false;
   tstack->hFile = NULL; // Not used in linux
-
   // Initialize the file time structure
   tstack->fwrite_time = time(NULL);
   WriteLogFile((char *)"Buffer memory successfully allocated");

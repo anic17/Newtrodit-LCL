@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
     int *relative_ypos = calloc(sizeof(int) * BUFFER_X, BUFFER_Y);
 
     // getch() variables
-    unsigned char ch = 0;
+    int ch = 0;
 
     int *file_arguments = {0}; // Array of ints for arguments that aren't switches
     int file_arguments_count = 0;
@@ -639,7 +639,7 @@ int main(int argc, char *argv[])
             fseek(open_argv, 0, SEEK_SET);
             if (CountLines(open_argv) > BUFFER_Y) // Check if file is too big
             {
-                fprintf(stderr, "%s%s", NEWTRODIT_FS_FILE_TOO_LARGE, Tab_stack[file_index].filename);
+                fprintf(stderr, "%s%s\n", NEWTRODIT_FS_FILE_TOO_LARGE, Tab_stack[file_index].filename);
                 WriteLogFile(join(NEWTRODIT_FS_FILE_TOO_LARGE, Tab_stack[file_index].filename));
 
                 return EFBIG; // File too big
@@ -711,9 +711,9 @@ int main(int argc, char *argv[])
         (wrapSize < 0) ? wrapSize = 0 : wrapSize; // Check if wrapSize is negative
 
         SetDisplayCursorPos(&Tab_stack[file_index]);
-
+#ifdef _WIN32
         GetFileTime(&Tab_stack[file_index].hFile, &tmpTimeRead, NULL, &tmpTimeWrite);
-
+#endif
         ch = GetNewtroditInput(&Tab_stack[file_index]); // Register all input events, not only key presses
 
         if (Tab_stack[file_index].xpos < 0 || Tab_stack[file_index].ypos < 1)

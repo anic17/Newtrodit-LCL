@@ -81,6 +81,7 @@ void LoadLineCount(File_info *tstack, int startpos, int starty)
 {
 	if (lineCount)
 	{
+
 		int n = YSIZE;
 		int lines_load = 0;
 
@@ -172,13 +173,16 @@ int WriteBuffer(FILE *fstream, File_info *tstack)
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 {
 	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
-	if (lineCount) {
+
+	if (lineCount)
+	{
 		LoadLineCount(tstack, tstack->ypos, starty);
 	}
 	int startpos = 0;
 	int window_size = YSIZE;
 
-	if (tstack->ypos >= (window_size - 2)) {
+	if (tstack->ypos >= (window_size - 2))
+	{
 		startpos = tstack->ypos - (window_size - 2);
 	}
 	/*
@@ -187,20 +191,26 @@ int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 	'starty' is for the optimizations, 'startpos' is for the display
 	*/
 
-	if (starty < 0) {
+	if (starty < 0)
+	{
 		starty = 0;
 	}
 	syntaxAfterDisplay = true;
-	for (int i = 1 + startpos + starty; i < startpos + (window_size - 1); i++) {
-		if (tstack->strsave[i][0] != '\0') {
+	for (int i = 1 + startpos + starty; i < startpos + (window_size - 1); i++)
+	{
+		if (tstack->strsave[i][0] != '\0')
+		{
 			gotoxy((lineCount ? (tstack->linecount_wide) : 0), i - startpos);
 			print_line(tstack->strsave[i]);
 		}
 	}
-	if (syntaxHighlighting && syntaxAfterDisplay) {
+	if (syntaxHighlighting && syntaxAfterDisplay)
+	{
 		syntaxAfterDisplay = false;
-		for (int i = 1 + startpos + starty; i < startpos + (window_size - 1); i++) {
-			if (tstack->strsave[i][0] != '\0') {
+		for (int i = 1 + startpos + starty; i < startpos + (window_size - 1); i++)
+		{
+			if (tstack->strsave[i][0] != '\0')
+			{
 				gotoxy((lineCount ? (tstack->linecount_wide) : 0), i - startpos);
 				color_line(tstack->strsave[i], 0, tstack->Syntaxinfo.override_color);
 			}
@@ -495,13 +505,10 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 #else
 	// Get last write time of a file
 	struct stat attr;
-  stat(filename, &attr);
-
+	stat(filename, &attr);
 	// TODO: Check if the file was successfully opened
-
 	tstack->fread_time = attr.st_mtime;
 	tstack->fwrite_time = attr.st_mtime;
-
 	// TODO: Check if a file is readonly
 #endif
 	fclose(fpread);
@@ -512,12 +519,14 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 
 int NewFile(File_info *tstack) // ^N = New file
 {
+
 	if (open_files < MAX_TABS)
 	{
 		if (file_index + 1 < open_files)
 		{
 			for (int i = open_files; i < file_index; i--) // Shift all struct pointers to the right
 			{
+
 				memmove((void *)&tstack[i + 1], (void *)&tstack[i], sizeof tstack[i]);
 			}
 			/* {
@@ -544,10 +553,9 @@ int NewFile(File_info *tstack) // ^N = New file
 		return -ENOMEM;
 	}
 	LoadAllNewtrodit();
-	SetDisplayCursorPos(tstack->xpos, tstack->ypos);
+	DisplayCursorPos(tstack->xpos, tstack->ypos);
+	SetDisplayCursorPos(tstack);
 	UpdateTitle(tstack);
-
-	gotoxy(tstack->xpos + (lineCount ? (tstack->linecount_wide) : 0), tstack->ypos);
 
 	return 1;
 }
@@ -639,7 +647,6 @@ int UpdateScrolledScreen(File_info *tstack)
 	}
 	return 0;
 }
-
 int UpdateHomeScrolledScreen(File_info *tstack)
 {
 	if (tstack->ypos >= (YSIZE - 3))
@@ -720,7 +727,7 @@ int AutoIndent(File_info *tstack, int yps, int *xps)
 {
 	if (autoIndent)
 	{
-		if (yps < 3 || yps >= BUFFER_X)
+		if (yps < 2 || yps >= BUFFER_X)
 		{
 			return -1; // Too big
 		}
@@ -817,7 +824,6 @@ int InsertNewRow(File_info *tstack, int *xps, int *yps, int dispy, int size, cha
 
 int LocateFiles(int show_dir, char *file, int startpos)
 {
-
 	/*
 	int n = startpos, total = startpos;
 
@@ -827,17 +833,18 @@ int LocateFiles(int show_dir, char *file, int startpos)
 	int ys = YSIZE;
 	int max_print = wrapSize;
 	char *search_pattern = "*";
-
 	// Pull current system time
-	time_t now;
-  struct tm *tm;
-	now = time(0);
-  if ((tm = localtime(&now)) == NULL) {
-    printf ("Error extracting system time\n");
-  	return 1;
-  }
 
-	if (strpbrk(file, "*?") != NULL)
+	time_t now;
+	struct tm *tm;
+	now = time(0);
+	if (!(tm = localtime(&now)))
+	{
+		printf("Error extracting system time\n");
+		return 1;
+	}
+
+	if (strpbrk(file, "*?"))
 	{
 		search_pattern = strdup(file); // Create a duplicate if needed
 		isWildcard = true;
@@ -854,21 +861,19 @@ int LocateFiles(int show_dir, char *file, int startpos)
 	}
 	char *dir_tmp = (char *)calloc(MAX_PATH * 2, sizeof(char));
 	char *out_dir = (char *)calloc(MAX_PATH * 2, sizeof(char));
+	GetCurrentDirectory(MAX_PATH, dir_tmp);
 
 	if (!isWildcard && get_path_directory(file, out_dir))
 	{
 		chdir(out_dir);
 		file = strlasttok(strdup(file), PATHTOKENS);
 	}
-
-	// Get current working directory
+		// Get current working directory
 	char cwd[MAX_PATH];
   if (getcwd(cwd, sizeof(cwd)) == NULL) {
-  	prinf("Error extracting current working directory\n");
+	prinf("Error extracting current working directory\n");
   }
-
 	printf("Current directory: %s\n", cwd);
-
 	if ((hFindFiles = FindFirstFile(search_pattern, &FindFileData)) != INVALID_HANDLE_VALUE)
 	{
 		while (FindNextFile(hFindFiles, &FindFileData))
@@ -894,7 +899,6 @@ int LocateFiles(int show_dir, char *file, int startpos)
 					}
 					n++;
 				}
-
 				total++;
 			}
 		}
@@ -903,7 +907,6 @@ int LocateFiles(int show_dir, char *file, int startpos)
 	{
 		PrintBottomString(join(NEWTRODIT_FS_FILE_NOT_FOUND, file));
 		last_known_exception = NEWTRODIT_FS_FILE_NOT_FOUND;
-
 		chdir(dir_tmp);
 		return 0;
 	}
@@ -961,13 +964,12 @@ int SetYFromDisplayY(File_info *tstack, int disp_y, int *current_y, int *current
 	}
 }
 
-
 int GetYFromTopMostLine(File_info *tstack)
 {
 	int y = 0;
 	if (tstack->scrolled_y)
 	{
-		y = tstack->ypos-YSCROLL;
+		y = tstack->ypos - YSCROLL;
 	}
 	else
 	{
@@ -1139,174 +1141,12 @@ HANDLE hConsoleInput = GetStdHandle(STD_INPUT_HANDLE);
 
 void ErrorExit(char *s)
 {
-
-	/* MessageBox(0, s, "Newtrodit", 16);
-	return; */
+	// MessageBox(0, s, "Newtrodit", 16);
+	return;
 }
-
 
 int GetNewtroditInput(File_info *tstack)
 {
-/*
-	HANDLE hStdin, hStdout;
-	DWORD fdwSaveOldMode;
-	DWORD cNumRead, fdwMode, i;
-	INPUT_RECORD irInBuffer[128];
-	CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-	COORD oldSize = {0}, newSize = {0};
-	// Get the standard input handle.
-
-	int counter = 0;
-	int x = 0, y = 0, button = 0, scroll_direction = 0;
-
-	int top_line_num_disp = (tstack->ypos - GetConsoleInfo(YCURSOR) <= 0) ? 1 : tstack->ypos - GetConsoleInfo(YCURSOR);
-	int bottom_line_num_disp = (tstack->ypos - GetConsoleInfo(YCURSOR) + GetConsoleInfo(YSIZE) >= tstack->bufy) ? tstack->bufy : tstack->ypos - GetConsoleInfo(YCURSOR) + GetConsoleInfo(YSIZE);
-	// Get the standard input handle.
-
-	hStdin = GetStdHandle(STD_INPUT_HANDLE), hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-	if (hStdin == INVALID_HANDLE_VALUE || hStdout == INVALID_HANDLE_VALUE)
-	{
-		ErrorExit("GetStdHandle");
-		return 0;
-	}
-	GetConsoleScreenBufferInfo(hStdout, &csbi);
-
-	while (1)
-	{
-		if (allowAutomaticResizing)
-		{
-			oldSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-			oldSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-		}
-		WaitForSingleObject(hStdin, INFINITE);
-		// Wait for the events.
-		if (PeekConsoleInput(hStdin, irInBuffer, 128, &cNumRead) == 0)
-		{
-			ErrorExit("PeekConsoleInput");
-			return 0;
-		}
-		for (int i = 0; i < cNumRead; i++)
-		{
-			if (irInBuffer[i].EventType == KEY_EVENT && irInBuffer->Event.KeyEvent.bKeyDown) // Must have pressed the key, not released
-			{
-				return getch();
-			}
-			if (irInBuffer[i].EventType == FOCUS_EVENT)
-			{
-				// Ignore window focus events.
-			}
-			if (irInBuffer[i].EventType == WINDOW_BUFFER_SIZE_EVENT)
-			{
-				if (allowAutomaticResizing)
-				{
-
-					GetConsoleScreenBufferInfo(hStdout, &csbi);
-					newSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-					newSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-
-					if ((oldSize.X != newSize.X || oldSize.Y != newSize.Y))
-					{
-
-						// printf("%d:%d %d:%d\n", oldSize.X, new_x_size, old_y_size, new_y_size);
-						if (ValidSize()) // At 3 message boxes, close the program
-						{
-							SetConsoleSize(oldSize.X, oldSize.Y);
-						}
-						else
-						{
-							SetConsoleSize(newSize.X, newSize.Y);
-							oldSize.X = newSize.X;
-							oldSize.X = newSize.Y; // Routine to resize the console window and adapt the current screen buffer size to the new console size.
-						}
-						WriteLogFile(join(join(join("Resized the console window: ", itoa_n(newSize.X)), "x"), itoa_n(newSize.Y)));
-						// printf("Console size changed from %dx%d to %dx%d\n", old_x_size, old_y_size, new_x_size, new_y_size);
-						clearAllBuffer = true;
-						LoadAllNewtrodit();
-						clearAllBuffer = false;
-						DisplayFileContent(&Tab_stack[file_index], stdout, 0);
-						DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
-
-						SetDisplayY(&Tab_stack[file_index]);
-						SetDisplayCursorPos(&Tab_stack[file_index]);
-					}
-				}
-			}
-			if (partialMouseSupport)
-			{
-
-				if (irInBuffer[i].EventType == MOUSE_EVENT) // Mouse event
-				{
-					if (irInBuffer[i].Event.MouseEvent.dwEventFlags == MOUSE_WHEELED) // Vertical scroll
-					{
-						if (!(irInBuffer[i].Event.MouseEvent.dwButtonState & 0x80000000)) // Up
-						{
-
-							if (tstack->ypos >= 1 && tstack->strsave[tstack->ypos][0] != '\0')
-							{
-								(tstack->ypos - scrollRate > 1) ? (tstack->ypos -= scrollRate) : (tstack->ypos = 1);
-								if (tstack->last_pos_scroll == -1)
-								{
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
-								{
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								UpdateScrolledScreen(lineCount, tstack);
-								DisplayCursorPos(tstack->xpos, tstack->ypos);
-								SetDisplayY(tstack);
-								SetDisplayCursorPos(tstack);
-							}
-						}
-						else // Down
-						{
-							if (tstack->ypos + scrollRate < tstack->bufy && tstack->strsave[tstack->ypos + scrollRate][0] != '\0')
-							{
-								tstack->ypos += scrollRate;
-								if (tstack->last_pos_scroll == -1)
-								{
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
-								{
-									tstack->last_pos_scroll = -1; // End of line
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								UpdateScrolledScreen(lineCount, tstack);
-								DisplayCursorPos(tstack->xpos, tstack->ypos);
-								SetDisplayY(tstack);
-
-								SetDisplayCursorPos(tstack);
-							}
-						}
-					}
-					if (irInBuffer[i].Event.MouseEvent.dwEventFlags == DOUBLE_CLICK)
-					{
-						// TODO: Select the word
-					}
-					if (irInBuffer[i].Event.MouseEvent.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED && irInBuffer[i].Event.MouseEvent.dwEventFlags != MOUSE_MOVED)
-					{
-
-						x = irInBuffer[i].Event.MouseEvent.dwMousePosition.X;
-						y = irInBuffer[i].Event.MouseEvent.dwMousePosition.Y;
-						if (x < XSIZE && x < tstack->bufx && y < tstack->bufy && y <= tstack->display_y && tstack->strsave[y][0] != '\0')
-						{
-							// TO WORK ON LATER
-							SetYFromDisplayY(tstack, y, &tstack->ypos, &tstack->display_y);
-
-							tstack->xpos = (x - (lineCount ? tstack->linecount_wide : 0) > NoLfLen(tstack->strsave[tstack->ypos]) ? NoLfLen(tstack->strsave[tstack->ypos]) : x - (lineCount ? tstack->linecount_wide : 0));
-
-							DisplayCursorPos(tstack->xpos, tstack->ypos);
-							SetDisplayCursorPos(tstack);
-						}
-					}
-				}
-				FlushConsoleInputBuffer(hStdin);
-			}
-		}
-	}
-
-	return 0;
-*/
+	int keycode = getch();
+	return keycode;
 }

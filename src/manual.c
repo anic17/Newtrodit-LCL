@@ -25,6 +25,14 @@
 #endif
 #include "newtrodit_syntax.h"
 
+enum
+{
+	BOLD_INDEX,
+	ITALIC_INDEX,
+	UNDERLINE_INDEX,
+	STRIKE_INDEX,
+};
+
 void DisplayLineCount(File_info *tstack, int size, int yps);
 int SaveFile(File_info *tstack);
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty);
@@ -39,18 +47,18 @@ int DisplayFileContent(File_info *tstack, FILE *fstream, int starty);
 
 int DownArrow(int man_line_count)
 {
-	if (man_line_count - (YSIZE - 4) > 0)
+	if (man_line_count + (YSIZE - 4) > 0)
 	{
-		man_line_count = man_line_count - (1 * (YSIZE - 3) - 1);
+		man_line_count = man_line_count - (YSIZE - 4);
 	}
 	else
 	{
-		man_line_count = man_line_count - (1 * (YSIZE - 3));
+		man_line_count = man_line_count - (YSIZE - 3);
 	}
 	return man_line_count;
 }
 
-int SetVTSettings(bool enabled)
+int VTSettings(bool enabled)
 {
 #ifdef _WIN32
 	DWORD lmode; // Process ANSI escape sequences
@@ -67,11 +75,78 @@ int SetVTSettings(bool enabled)
 		lmode &= ~ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
 	}
 	return SetConsoleMode(hStdout, lmode);
-#else
-
 #endif
 }
 
+int ParseManual(char *line)
+{
+	char *styles[] = {
+		"\x1b[1m",
+		"\x1b[3m",
+		"\x1b[4m",
+		"\x1b[9m",
+	};
+	char *reset[] = {
+		"\x1b[22m",
+		"\x1b[23m",
+		"\x1b[24m",
+		"\x1b[29m",
+	};
+	bool is_bold = false, is_italic = false, is_underline = false, is_strike = false;
+	size_t len = strlen(line);
+	for (int i = 0; i < strlen(line); i++)
+	{
+		if (!strncmp(line + i, "**", 2))
+		{
+			is_bold = !is_bold;
+			is_bold ? printf("%s", styles[BOLD_INDEX]) : printf("%s", reset[BOLD_INDEX]);
+			i++;
+			continue;
+		}
+		else if (!strncmp(line + i, "__", 2))
+		{
+			is_underline = !is_underline;
+			is_underline ? printf("%s", styles[UNDERLINE_INDEX]) : printf("%s", reset[UNDERLINE_INDEX]);
+			i++;
+			continue;
+		}
+		else if (!strncmp(line + i, "~~", 2))
+		{
+			is_strike = !is_strike;
+			is_strike ? printf("%s", styles[STRIKE_INDEX]) : printf("%s", reset[STRIKE_INDEX]);
+			i++;
+			continue;
+		}
+		else if (!strncmp(line + i, "*", 1) || !strncmp(line + i, "_", 1))
+		{
+			is_italic = !is_italic;
+			is_italic ? printf("%s", styles[ITALIC_INDEX]) : printf("%s", reset[ITALIC_INDEX]);
+			continue;
+		}
+		else if (!strncmp(line + i, "\\", 1))
+		{
+			if (i < len)
+			{
+				putchar(line[++i]);
+			}
+			else
+			{
+				putchar(line[i]);
+			}
+		}
+		else if (!strncmp(line + i, ".  ", 3))
+		{
+			printf(".\n");
+			i += 2;
+			continue;
+		}
+		else
+		{
+			putchar(line[i]);
+		}
+	}
+	return 0;
+}
 int NewtroditHelp()
 {
 
@@ -113,8 +188,7 @@ int NewtroditHelp()
 		return 0;
 	}
 
-
-	if (!SetVTSettings(true) && !RGB24bit) // Process ANSI escape sequences and check if the console supports ANSI escape sequences
+	if (!VTSettings(true) && !RGB24bit) // Process ANSI escape sequences and check if the console supports ANSI escape sequences
 	{
 		PrintBottomString(NEWTRODIT_ERROR_LOADING_MANUAL);
 		getch_n();
@@ -125,8 +199,8 @@ int NewtroditHelp()
 
 #define reset_color "\x1b[0m"
 
-	int quit_manual = 0, end_manual = 0, max_manual_lines = 0;
-	int man_line_count = 0, disable_clear = 0;
+	bool finished_manual = false;
+	int man_line_count = 0, max_manual_lines = 0, disable_clear = 0;
 
 	int temp_escape = 0;
 	int manual_ch;
@@ -146,7 +220,7 @@ int NewtroditHelp()
 		{
 			PrintBottomString(join(NEWTRODIT_ERROR_INVALID_MANUAL, manual_file));
 			getch_n();
-			SetVTSettings(false);
+			VTSettings(false);
 			chdir(SInf.dir);
 
 			return 1;
@@ -155,7 +229,7 @@ int NewtroditHelp()
 		{
 			PrintBottomString(NEWTRODIT_ERROR_MANUAL_TOO_BIG);
 			getch_n();
-			SetVTSettings(false);
+			VTSettings(false);
 			chdir(SInf.dir);
 
 			return 1;
@@ -165,250 +239,228 @@ int NewtroditHelp()
 	}
 
 	man_line_count = 1; // Reset line count
+	TopHelpBar();
+	BottomHelpBar();
 
-	while (quit_manual == 0)
+	while (!finished_manual)
 	{
-		if (end_manual == 1)
-		{
-			quit_manual = 1;
-		}
-		if (manual_ch != 0)
-		{
-			TopHelpBar();
-			BottomHelpBar();
-			for (int i = 1; i < YSIZE - 2; ++i)
-			{
-				SetColor(BG_DEFAULT);
-				if (man_line_count <= 0)
-				{
-					man_line_count = 1;
-				}
-				if (man_line_count <= max_manual_lines)
-				{
-					gotoxy(0, i);
-					manual_buf[man_line_count][strcspn(manual_buf[man_line_count], "\n")] = 0;
 
-					if (strrchr(manual_buf[man_line_count], escape_char) != 0)
+		for (int i = 0; i < YSIZE - 3; i++)
+		{
+			SetColor(BG_DEFAULT);
+			if (man_line_count < 1)
+			{
+				man_line_count = 1;
+			}
+			if (man_line_count < max_manual_lines)
+			{
+				gotoxy(0, i + 1);
+				manual_buf[man_line_count][strcspn(manual_buf[man_line_count], "\n")] = 0;
+
+				if (strrchr(manual_buf[man_line_count], escape_char) != 0)
+				{
+					for (int k = 0; k < strlen(manual_buf[man_line_count]); ++k)
 					{
-						for (int k = 0; k < strlen(manual_buf[man_line_count]); ++k)
+						if (manual_buf[man_line_count][k] == escape_char)
 						{
-							if (manual_buf[man_line_count][k] == escape_char)
+							switch (manual_buf[man_line_count][k + 1])
 							{
-								switch (manual_buf[man_line_count][k + 1])
-								{
-								case 'Y':
-									printf("%d", BUFFER_Y);
-									k++;
-									break;
-								case 'X':
-									printf("%d", BUFFER_X);
-									k++;
-									break;
-								case 'I':
-									printf("%d", BUFFER_INCREMENT);
-									k++;
-									break;
-								case 'C':
-									printf("%s", newtrodit_commit);
-									k++;
-									break;
-								case 'B':
-									printf("%s", newtrodit_build_date);
-									k++;
-									break;
-								case 'V':
-									printf("%s", newtrodit_version);
-									k++;
-									break;
-								case 'G':
-									printf("%s", newtrodit_repository);
-									k++;
-									break;
-								default:
-									printf("%c", manual_buf[man_line_count][++k]);
-								}
-							}
-							else
-							{
-								putchar(manual_buf[man_line_count][k]);
+							case 'Y':
+								printf("%d", BUFFER_Y);
+								k++;
+								break;
+							case 'X':
+								printf("%d", BUFFER_X);
+								k++;
+								break;
+							case 'I':
+								printf("%d", BUFFER_INCREMENT);
+								k++;
+								break;
+							case 'C':
+								printf("%s", newtrodit_commit);
+								k++;
+								break;
+							case 'B':
+								printf("%s", newtrodit_build_date);
+								k++;
+								break;
+							case 'V':
+								printf("%s", newtrodit_version);
+								k++;
+								break;
+							case 'G':
+								printf("%s", newtrodit_repository);
+								k++;
+								break;
+							default:
+								printf("%c", manual_buf[man_line_count][++k]);
 							}
 						}
+						else
+						{
+							putchar(manual_buf[man_line_count][k]);
+						}
 					}
-					else
-					{
-						printf("%.*s\n", MANUAL_BUFFER_X, manual_buf[man_line_count]);
-					}
-
-					man_line_count++;
-					printf("%s", reset_color); // Clear all text attributes
 				}
 				else
 				{
-					printf("%s", reset_color);
-
-					man_line_count = max_manual_lines - (YSIZE - 4);
-					disable_clear = false;
-					quit_manual = 1;
+					printf("%.*s\n", MANUAL_BUFFER_X, manual_buf[man_line_count]);
 				}
-			}
-		}
-
-		if (quit_manual == 0)
-		{
-			manual_ch = getch();
-			switch (manual_ch)
-			{
-			case 24: // ^X
-				SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-				SetVTSettings(false);
-				chdir(SInf.dir);
-
-				return 0;
-				break;
-			case 27: // ESC
-				SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-				SetVTSettings(false);
-				chdir(SInf.dir);
-
-				return 0;
-				break;
-			case 0:
-
-				manual_ch = getch();
-				if (manual_ch == 107) // A-F4
-				{
-					QuitProgram(SInf.color);
-					printf("%s", reset_color); // Clear all text attributes
-					BottomHelpBar();
-					manual_ch = 0;
-					break;
-				}
-				if (manual_ch == 59) // F1
-				{
-					SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-					SetVTSettings(false);
-					for (int i = 0; i < MANUAL_BUFFER_Y; i++)
-					{
-						free(manual_buf[i]);
-					}
-					chdir(SInf.dir);
-
-					return 0;
-				}
-
-				break;
-			case 13: // Enter
-				printf("%s", reset_color);
-				man_line_count = DownArrow(man_line_count);
-				break;
-			case 224:
-				manual_ch = getch();
-				switch (manual_ch)
-				{
-				case 73: // PageUp
-					printf("%s", reset_color);
-
-					if ((man_line_count - (YSIZE - 3)) > (YSIZE - 3))
-					{
-						man_line_count -= (2 * (YSIZE - 3)); // Multiplied by 2
-					}
-					else
-					{
-						man_line_count = 1; // Set manual position to first line
-					}
-
-					break;
-				case 71: // HOME key
-					printf("%s", reset_color);
-
-					ClearPartial(0, 1, XSIZE, YSIZE - 2);
-					man_line_count = 1;
-					disable_clear = true;
-					break;
-				case 119: // ^HOME key
-					printf("%s", reset_color);
-
-					man_line_count = 1;
-					disable_clear = true;
-					break;
-
-				case 79: // END key
-					printf("%s", reset_color);
-
-					ClearPartial(0, 1, XSIZE, YSIZE - 2);
-					man_line_count = max_manual_lines - (YSIZE - 4);
-					break;
-				case 117: // ^END key
-					printf("%s", reset_color);
-					ClearPartial(0, 1, XSIZE, YSIZE - 2);
-					man_line_count = max_manual_lines - (YSIZE - 4);
-					break;
-
-				case 72: // Up arrow
-					printf("%s", reset_color);
-					if ((man_line_count - (1 * (YSIZE - 3) + 1)) > 0)
-					{
-						man_line_count = man_line_count - (1 * (YSIZE - 3) + 1);
-					}
-					else
-					{
-						man_line_count = man_line_count - (1 * (YSIZE - 3));
-						disable_clear = true;
-					}
-					break;
-				case 80: // Down arrow
-					printf("%s", reset_color);
-					man_line_count = DownArrow(man_line_count);
-					break;
-				default:
-					// man_line_count = man_line_count - (1 * (YSIZE - 3));
-
-					break;
-				}
-				break;
-			case 7: // ^G
-				PrintBottomString(NEWTRODIT_PROMPT_GOTO_LINE);
-
-				gotoline_man = TypingFunction('0', '9', strlen(itoa_n(MANUAL_BUFFER_Y)));
-				if (atoi(gotoline_man) < 0 || atoi(gotoline_man) > max_manual_lines || atoi(gotoline_man) >= MANUAL_BUFFER_Y) // Line is less than 1
-				{
-					PrintBottomString(NEWTRODIT_ERROR_INVALID_YPOS);
-					getch_n();
-					man_line_count -= -(1 * (YSIZE - 3));
-				}
-				else
-				{
-					if ((man_line_count > 0 - (YSIZE + 2)))
-					{
-						man_line_count = atoi(gotoline_man) - (1 * (YSIZE - 3) + 1);
-					}
-				}
-				ClearPartial(0, 1, XSIZE, YSIZE - 2);
-				break;
-			default:
-
-				break;
-			}
-		}
-
-		if (manual_ch != 0)
-		{
-			if (disable_clear == 1)
-			{
-				disable_clear = 0;
+				man_line_count++;
 			}
 			else
 			{
-				ClearPartial(0, 1, XSIZE, YSIZE - 2);
+				getch_n();
+				return 0;
 			}
 		}
+
+		manual_ch = getch();
+		switch (manual_ch)
+		{
+		case 24: // ^X
+			SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+			VTSettings(false);
+			chdir(SInf.dir);
+
+			return 0;
+			break;
+		case 27: // ESC
+			SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+			VTSettings(false);
+			chdir(SInf.dir);
+
+			return 0;
+			break;
+		case 0:
+
+			manual_ch = getch();
+			if (manual_ch == 107) // A-F4
+			{
+				SetColor(FG_DEFAULT);
+				QuitProgram(SInf.color);
+				fputs(reset_color, stdout); // Clear all text attributes
+				BottomHelpBar();
+				manual_ch = 0;
+				break;
+			}
+			if (manual_ch == 59) // F1
+			{
+				SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+				VTSettings(false);
+				for (int i = 0; i < MANUAL_BUFFER_Y; i++)
+				{
+					free(manual_buf[i]);
+				}
+				chdir(SInf.dir);
+
+				return 0;
+			}
+
+			break;
+		case 13: // Enter
+			fputs(reset_color, stdout);
+			man_line_count = DownArrow(man_line_count);
+			break;
+		case 224:
+			manual_ch = getch();
+			switch (manual_ch)
+			{
+			case 73: // PageUp
+				fputs(reset_color, stdout);
+
+				if (man_line_count > 0)
+				{
+					man_line_count -= (2 * (YSIZE - 3)); // Multiplied by 2
+				}
+				else
+				{
+					man_line_count = 1; // Set manual position to first line
+				}
+
+				break;
+			case 71: // HOME key
+				fputs(reset_color, stdout);
+
+				ClearPartial(0, 1, XSIZE, YSIZE - 2);
+				man_line_count = 1;
+				disable_clear = true;
+				break;
+			case 119: // ^HOME key
+				fputs(reset_color, stdout);
+
+				man_line_count = 1;
+				disable_clear = true;
+				break;
+
+			case 79: // END key
+				fputs(reset_color, stdout);
+
+				ClearPartial(0, 1, XSIZE, YSIZE - 2);
+
+				man_line_count = max_manual_lines - 1;
+				break;
+			case 117: // ^END key
+				fputs(reset_color, stdout);
+				ClearPartial(0, 1, XSIZE, YSIZE - 2);
+				man_line_count = max_manual_lines - (YSIZE - 3);
+				break;
+
+			case 72: // Up arrow
+				fputs(reset_color, stdout);
+				if ((man_line_count - (1 * (YSIZE - 3) + 1)) > 0)
+				{
+					man_line_count = man_line_count - (YSIZE - 2);
+				}
+				else
+				{
+					man_line_count = man_line_count - ((YSIZE - 3));
+					disable_clear = true;
+				}
+				break;
+			case 80: // Down arrow
+				fputs(reset_color, stdout);
+				man_line_count = DownArrow(man_line_count);
+				break;
+			default:
+				// man_line_count = man_line_count - (1 * (YSIZE - 3));
+
+				break;
+			}
+			break;
+		case 7: // ^G
+			SetColor(FG_DEFAULT);
+			PrintBottomString(NEWTRODIT_PROMPT_GOTO_LINE);
+
+			gotoline_man = TypingFunction('0', '9', strlen(itoa_n(MANUAL_BUFFER_Y)));
+			if (atoi(gotoline_man) < 0 || atoi(gotoline_man) > max_manual_lines || atoi(gotoline_man) >= MANUAL_BUFFER_Y) // Line is less than 1
+			{
+				PrintBottomString(NEWTRODIT_ERROR_INVALID_YPOS);
+				getch_n();
+				man_line_count -= -(1 * (YSIZE - 3));
+			}
+			else
+			{
+				if ((man_line_count > 0 - (YSIZE + 2)))
+				{
+					man_line_count = atoi(gotoline_man) - (1 * (YSIZE - 3) + 1);
+				}
+			}
+			BottomHelpBar();
+			break;
+		default:
+
+			break;
+		}
+		ClearPartial(0, 1, XSIZE, YSIZE - 2);
 	}
 	for (int i = 0; i < MANUAL_BUFFER_Y; i++)
 	{
 		free(manual_buf[i]);
 	}
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
-	SetVTSettings(false);
+	VTSettings(false);
 	chdir(SInf.dir);
 
 	return 0;

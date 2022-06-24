@@ -313,8 +313,9 @@ theme_t themelight = {
     .linecount_color = 0x07,
 };
 
-#ifdef _WIN32
 enum CONTROL_CODES
+
+#ifdef _WIN32
 {
     BS = 8,
     TAB = 9,
@@ -353,7 +354,6 @@ enum CONTROL_CODES
     F12 = 134,
 };
 #else
-enum CONTROL_CODES
 {
     BS = 127,
     TAB = 9,
