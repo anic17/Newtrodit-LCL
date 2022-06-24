@@ -394,7 +394,7 @@ int RestoreConsoleBuffer()
 /* Set default FG color for text */
 void SetColor(int color)
 {
-  printf("%s", HexToAnsi(color));
+  printf("\x1B[0m%s", HexToAnsi(color));
 }
 
 /* Set color of a specific terminal cell (specified by X, and Y) */
