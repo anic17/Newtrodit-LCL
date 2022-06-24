@@ -43,7 +43,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <string.h>
-#include "linux/newtrodit_core_linux.h"
+
 #include "manual.c"
 
 void sigsegv_handler(int signum)
