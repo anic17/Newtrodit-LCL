@@ -2295,7 +2295,9 @@ int main(int argc, char *argv[])
         {
             if (!useOldKeybinds)
             {
+#ifdef _WIN32
                 if (!CheckKey(VK_SHIFT))
+#endif
                 {
                     QuitProgram(SInf.color);
                     ShowBottomMenu();
