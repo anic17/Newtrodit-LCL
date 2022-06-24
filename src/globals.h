@@ -18,8 +18,9 @@
 */
 
 const char newtrodit_version[] = "0.6";
-const char newtrodit_build_date[] = "20/6/2022";
+const char newtrodit_build_date[] = "24/6/2022";
 const char newtrodit_repository[] = "https://github.com/anic17/Newtrodit";
+const char newtrodit_lcl_repository[] = "https://github.com/anic17/Newtrodit-LCL";
 char manual_file[MAX_PATH] = "newtrodit.man";
 char settings_file[MAX_PATH] = "newtrodit.config";
 const char newtrodit_commit[] = ""; // Example commit
@@ -32,7 +33,7 @@ const int MANUAL_BUFFER_Y = 1000;
 int TAB_WIDE = TAB_WIDE_;
 int CURSIZE = CURSIZE_;
 int LINECOUNT_WIDE = LINECOUNT_WIDE_;
-int lineCount = true; // Is line count enabled?
+int lineCount = false; // Is line count enabled?
 
 int goto_len = 4;
 
@@ -47,7 +48,7 @@ int fullPathTitle = true;
 int useOldKeybinds = false; // Bool to use old keybinds (^X instead of ^Q, ^K instead of ^X)
 int longPositionDisplay = false;
 int generalUtf8Preference = false;
-int partialMouseSupport = false;    // Partial mouse support, only changes cursor position when mouse is clicked
+int partialMouseSupport = true;     // Partial mouse support, only changes cursor position when mouse is clicked
 int showMillisecondsInTime = false; // Show milliseconds in time insert function (F6)
 int useLogFile = true;
 int createNewLogFiles = false; // Create new log files when logging is enabled
@@ -316,17 +317,79 @@ theme_t themelight = {
 enum CONTROL_CODES
 {
     BS = 8,
+    TAB = 9,
     CTRLENTER = 10,
     ENTER = 13,
     CTRLBS = 127,
+    ESCARROW = 224,
+
+    UP = 72,
+    LEFT = 75,
+    RIGHT = 77,
+    DOWN = 80,
+
+    HOME = 71,
+    END = 79,
+
+    CTRLHOME = 119,
+    CTRLEND = 117,
+
+    INS = 82,
+    DEL = 83,
+
+    /* Different naming only happens in F11 and F12 */
+    F1 = 59,
+    F2 = 60,
+    F3 = 61,
+    F4 = 62,
+    F5 = 63,
+    F6 = 64,
+    F7 = 65,
+    F8 = 66,
+    F9 = 67,
+    F10 = 68,
+
+    F11 = 133,
+    F12 = 134,
 };
 #else
 enum CONTROL_CODES
 {
     BS = 127,
+    TAB = 9,
     CTRLENTER = 10,
     ENTER = 13,
     CTRLBS = 8,
+    ESCARROW = 27,
 
+    /* Warning: There's an implicit 27 + (91<<8) removed to make all keybinds fit in a single int32_t */
+    UP = 65 << 8,
+    LEFT = 68 << 8,
+    RIGHT = 67 << 8,
+    DOWN = 66 << 8,
+
+    HOME = 72,
+    END = 70,
+
+    CTRLHOME = 49 + (59 << 8) + (53 << 16) + (72 << 24),
+    CTRLEND = 49 + (59 << 8) + (53 << 16) + (70 << 24),
+
+    INS = 82,
+    DEL = 83,
+
+    /* Different naming is between F1 and F4*/
+    F1,
+    F2,
+    F3,
+    F4,
+
+    F5 = 49 + (53 << 8) + (126 << 16),
+    F6 = 49 + (55 << 8) + (126 << 16),
+    F7 = 49 + (56 << 8) + (126 << 16),
+    F8 = 49 + (57 << 8) + (126 << 16),
+    F9 = 50 + (48 << 8) + (126 << 16),
+    F10 = 50 + (49 << 8) + (126 << 16),
+    F11 = 50 + (51 << 8) + (126 << 16),
+    F12 = 50 + (52 << 8) + (126 << 16),
 };
 #endif
