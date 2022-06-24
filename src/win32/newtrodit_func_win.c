@@ -183,7 +183,7 @@ int WriteBuffer(FILE *fstream, File_info *tstack)
 
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 {
-	CursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
+	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
 	if (lineCount)
 	{
 		LoadLineCount(tstack, tstack->ypos, starty);
@@ -241,7 +241,7 @@ int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 			}
 		}
 	}
-	CursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 
 	return 0;
 }
@@ -722,9 +722,10 @@ int RedrawScrolledScreen(File_info *tstack, int yps)
 	return 1;
 }
 
-
 char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 {
+	int cursor_visible = GetConsoleInfo(CURSOR_VISIBLE);
+	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 	int chr = 0, index = 0;
 	char *num_str = (char *)malloc(max_len) + 1;
 
@@ -784,6 +785,8 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 			}
 		}
 	}
+	SetCursorSettings(cursor_visible, GetConsoleInfo(CURSOR_SIZE));
+
 	return num_str;
 }
 
@@ -855,7 +858,7 @@ signed long long FileCompare(char *file1, char *file2) // Compare files up to 8 
 	return (signed long long)-1;
 }
 
-int insert_new_row(File_info *tstack, int *xps, int *yps, int dispy, int size, char *newline)
+int InsertNewRow(File_info *tstack, int *xps, int *yps, int dispy, int size, char *newline)
 {
 	int n = *yps; // Save old y
 	InsertRow(tstack->strsave, *yps, size, NULL);
@@ -886,7 +889,7 @@ int insert_new_row(File_info *tstack, int *xps, int *yps, int dispy, int size, c
 	return *yps;
 }
 
-int LocateFiles(int show_dir, char *file, int startpos)
+int LocateFiles(bool show_dir, char *file, int startpos)
 {
 	int n = startpos, total = startpos;
 
@@ -897,6 +900,7 @@ int LocateFiles(int show_dir, char *file, int startpos)
 	int max_print = wrapSize;
 	char *search_pattern = "*";
 	SYSTEMTIME st;
+
 	if (strpbrk(file, "*?") != NULL)
 	{
 		search_pattern = strdup(file); // Create a duplicate if needed
@@ -922,7 +926,7 @@ int LocateFiles(int show_dir, char *file, int startpos)
 		file = StrLastTok(strdup(file), PATHTOKENS);
 	}
 
-	printf("Current directory: %s\n", _getcwd(NULL, 0));
+	printf("Current directory: %s\n", getcwd(NULL, 0));
 
 	if ((hFindFiles = FindFirstFile(search_pattern, &FindFileData)) != INVALID_HANDLE_VALUE)
 	{
@@ -957,14 +961,14 @@ int LocateFiles(int show_dir, char *file, int startpos)
 		PrintBottomString(join(NEWTRODIT_FS_FILE_NOT_FOUND, file));
 		last_known_exception = NEWTRODIT_FS_FILE_NOT_FOUND;
 
-		_chdir(dir_tmp);
+		chdir(dir_tmp);
 		return 0;
 	}
 	else
 	{
 		PrintBottomString(join(join(join(join("Showing ", itoa_n(n)), " of "), itoa_n(total)), NEWTRODIT_FS_FOUND_FILES));
 	}
-	_chdir(dir_tmp);
+	chdir(dir_tmp);
 	free(dir_tmp);
 	free(out_dir);
 	return 0;
@@ -1060,6 +1064,7 @@ void ErrorExit(char *s)
 	MessageBox(0, s, "Newtrodit", 16);
 	return;
 }
+
 
 int GetNewtroditInput(File_info *tstack)
 {
