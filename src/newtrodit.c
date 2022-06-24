@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <dirent.h>
+#include "linux/newtrodit_core_linux.h"
 #include "manual.c"
 
 void sigsegv_handler(int signum)
@@ -318,6 +319,12 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
 
 int main(int argc, char *argv[])
 {
+// LINUX: Buffers do not work as expected
+#if _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER == 1 && !_NEWTRODIT_OLD_SUPPORT
+#ifndef _WIN32
+    EnterAltConsoleBuffer();
+#endif
+#endif
 
     // Startup routine code Newtrodit must always execute
     char *startup_info = (char *)malloc(sizeof(char) * MAX_PATH * 2); // *2 for safety
@@ -355,12 +362,6 @@ int main(int argc, char *argv[])
 
         memset(SInf.location, 0, sizeof(char) * MAX_PATH * 2);
     }
-
-#if _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER == 1 && !_NEWTRODIT_OLD_SUPPORT
-#ifndef _WIN32
-    EnterAltConsoleBuffer();
-#endif
-#endif
 
     // Get file date times
 #ifdef _WIN32
@@ -1780,7 +1781,7 @@ int main(int argc, char *argv[])
                     printf("Value to change to: ");
                     scanf("%x", &n2);
                     // Change the specified address n to n2
-                    *(int *)n = n2;
+                    n = n2;
                     break;
                 }
 
@@ -2303,11 +2304,12 @@ int main(int argc, char *argv[])
                     ShowBottomMenu();
                     SetColor(bg_color);
                     ch = 0;
-                    continue;
+                    RestoreConsoleBuffer();
+                    return 0;
                 }
             }
         }
-        if (ch == 24) // ^X = Quit program/cut
+        if (ch == 24) // ^X = Cut
         {
             if (useOldKeybinds)
             {
