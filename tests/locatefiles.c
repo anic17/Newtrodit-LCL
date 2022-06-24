@@ -158,7 +158,7 @@ int LocateFiles(int show_dir, char *file, int startpos) {
 
 
 int main() {
-  LocateFiles(false, "*", 0);
+  LocateFiles(false, "cursor", 0);
 
   return 0;
 }
