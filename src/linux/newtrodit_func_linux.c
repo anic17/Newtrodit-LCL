@@ -517,6 +517,8 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	return 1;
 }
 
+void SetDisplayCursorPos(File_info *tstack);
+
 int NewFile(File_info *tstack) // ^N = New file
 {
 
