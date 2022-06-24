@@ -32,7 +32,7 @@ const int MANUAL_BUFFER_Y = 1000;
 int TAB_WIDE = TAB_WIDE_;
 int CURSIZE = CURSIZE_;
 int LINECOUNT_WIDE = LINECOUNT_WIDE_;
-int lineCount = false; // Is line count enabled?
+int lineCount = true; // Is line count enabled?
 
 int goto_len = 4;
 
