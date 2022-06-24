@@ -323,7 +323,7 @@ char *HexToAnsi(int num)
   return buf;
 }
 
-/* reads from keypress, doesn't echo */
+/* reads from keypress, returns keycode */
 int getch(void)
 {
     char buf = 0;
@@ -335,8 +335,7 @@ int getch(void)
 
     }
 
-    new.c_lflag &= ~(ICANON | ISIG);
-    new.c_lflag &= ECHO;
+    new.c_lflag &= ~(ICANON | ISIG | ECHO);
     new.c_iflag = 0;
     new.c_cc[VMIN] = 1;
     new.c_cc[VTIME] = 0;
@@ -348,6 +347,8 @@ int getch(void)
         perror("tcsetattr ~ICANON");
     return buf;
 }
+
+
 
 /* reads from keypress, echoes */
 int getche(void)

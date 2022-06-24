@@ -47,13 +47,11 @@ int fullPathTitle = true;
 int useOldKeybinds = false; // Bool to use old keybinds (^X instead of ^Q, ^K instead of ^X)
 int longPositionDisplay = false;
 int generalUtf8Preference = false;
-int partialMouseSupport = false; // Partial mouse support, only changes cursor position when mouse is clicked
+int partialMouseSupport = false;    // Partial mouse support, only changes cursor position when mouse is clicked
 int showMillisecondsInTime = false; // Show milliseconds in time insert function (F6)
 int useLogFile = true;
 int createNewLogFiles = false; // Create new log files when logging is enabled
-int RGB24bit = false; // Use 24-bit RGB instead of 4-bit colors
-
-
+int RGB24bit = false;          // Use 24-bit RGB instead of 4-bit colors
 
 int bpsPairHighlight = false; // Use BPS pair highlighting (bugged)
 
@@ -270,7 +268,6 @@ struct
     {"*/", 0x8},
 };
 
-
 typedef struct theme
 {
     int bg_color;
@@ -284,7 +281,7 @@ typedef struct theme
     int single_quotes;
     int capital_min_enabled;
 
-    int linecount_color;    
+    int linecount_color;
 } theme_t;
 
 theme_t themedark = {
@@ -314,3 +311,22 @@ theme_t themelight = {
     .capital_min_enabled = true,
     .linecount_color = 0x07,
 };
+
+#ifdef _WIN32
+enum CONTROL_CODES
+{
+    BS = 8,
+    CTRLENTER = 10,
+    ENTER = 13,
+    CTRLBS = 127,
+};
+#else
+enum CONTROL_CODES
+{
+    BS = 127,
+    CTRLENTER = 10,
+    ENTER = 13,
+    CTRLBS = 8,
+
+};
+#endif

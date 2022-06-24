@@ -172,10 +172,10 @@ void SetCursorSettings(int visible, int size)
 
 void NewtroditNameLoad()
 {
-	SetColor(fg_color);
+	SetColor(0x70);
 	ClearPartial(0, 0, XSIZE, 1);
 	printf(" Newtrodit %s", newtrodit_version);
-	SetColor(bg_color);
+	SetColor(0x07);
 }
 
 void DisplayCursorPos(int xps, int yps)

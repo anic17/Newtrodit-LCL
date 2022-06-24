@@ -437,7 +437,7 @@ int main(int argc, char *argv[])
 
     run_macro = (char *)malloc(sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
-    signal(SIGINT, SIG_IGN); // Ctrl-C handler
+    //signal(SIGINT, SIG_IGN); // Ctrl-C handler
 #ifdef _WIN32
     signal(SIGBREAK, SIG_IGN); // Ctrl-Break handler
 #endif
@@ -1580,7 +1580,7 @@ int main(int argc, char *argv[])
                 continue;
             }
         }
-        if ((ch == 13 && CheckKey(VK_RETURN)) || (ch == 13 && _NEWTRODIT_OLD_SUPPORT)) // Newline character: CR (13)
+        if ((ch == ENTER && CheckKey(VK_RETURN)) || (ch == ENTER && _NEWTRODIT_OLD_SUPPORT)) // Newline character: CR (13)
         {
             if (Tab_stack[file_index].ypos < Tab_stack[file_index].bufy - 1)
             {
@@ -2378,7 +2378,8 @@ int main(int argc, char *argv[])
 
             continue;
         }
-        if (ch == 127) // ^BS
+
+        if (ch == 127 ) // ^BS
         {
             if (Tab_stack[file_index].xpos > 0)
             {
