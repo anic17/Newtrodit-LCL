@@ -543,7 +543,7 @@ size_t NoLfLen(char *s)
   if (!strchr(exclude,
               '\n')) // Always exclude a newline (\n) even if it's not present
   {
-    strncat(exclude, "\n", 1);
+    strncat(exclude, "\n", 2);
   }
   size_t len = 0;
   while (*s)
