@@ -428,7 +428,7 @@ void ClearPartial(int x, int y, int width, int height) // Clears a section of th
   CanonOn();
   EchoOn();
   gotoxy(x, y);
-  for (int i = 0; i < height + 1; i++)
+  for (int i = 0; i < height; i++)
   {
     gotoxy(x, y + i);
     for (int j = 0; j < width; j++)
