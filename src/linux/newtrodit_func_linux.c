@@ -128,7 +128,7 @@ void LoadLineCount(File_info *tstack, int startpos, int starty)
 			}
 			else
 			{
-				printf("%d\n", startpos + i);
+				printf("%d\x1B[0m\n", startpos + i);
 			}
 		}
 		SetColor(bg_color);
