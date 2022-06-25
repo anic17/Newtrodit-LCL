@@ -57,7 +57,6 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 {
 	if (lineCount)
 	{
-
 		while (strlen(itoa_n(disp)) > (lineCount ? (tstack->linecount_wide) : 0))
 		{
 			(tstack->linecount_wide)++;
@@ -71,6 +70,7 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 		SetColor(0x80);
 		ClearPartial(0, disp, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
 
+		// Color current line's line number
 		printf("%d", tstack->ypos);
 
 		SetColor(bg_color);
@@ -128,7 +128,7 @@ void LoadLineCount(File_info *tstack, int startpos, int starty)
 			}
 			else
 			{
-				printf("%d\x1B[0m\n", startpos + i);
+				printf("%d\n", startpos + i);
 			}
 		}
 		SetColor(bg_color);
