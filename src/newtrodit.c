@@ -42,7 +42,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <dirent.h>
-#include "linux/newtrodit_core_linux.h"
 #include "manual.c"
 
 void sigsegv_handler(int signum)
@@ -121,7 +120,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
         setting_buf[strcspn(setting_buf, "\n")] = 0; // Remove newline
 
         cnt = strspn(setting_buf, " \t");
-        snprintf(setting_buf, sizeof(setting_buf), "%s", setting_buf + cnt);
+        snprintf(setting_buf, sizeof(setting_buf), "%s", setting_buf - 1);
 
         if (setting_buf[cnt] == ';' || setting_buf[cnt] == 0) // Comment or newline found
         {
@@ -1345,7 +1344,8 @@ int main(int argc, char *argv[])
                     {
                         if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1][Tab_stack[file_index].xpos] == '\0')
                         {
-                            Tab_stack[file_index].xpos = NoLfLen(Tab_stack[file_index].strsave[++Tab_stack[file_index].ypos]) + (TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1], "\t") * TAB_WIDE); // Add tab wide
+                            Tab_stack[file_index].ypos++;
+                            Tab_stack[file_index].xpos = NoLfLen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + (TokCount(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos + 1], "\t") * TAB_WIDE); // Add tab wide
                         }
                         else
                         {
@@ -2140,7 +2140,7 @@ int main(int argc, char *argv[])
             if (!Tab_stack[file_index].is_saved || n == 2)
             {
                 !Tab_stack[file_index].is_saved ? PrintBottomString(NEWTRODIT_PROMPT_SAVE_FILE) : PrintBottomString(NEWTRODIT_PROMPT_SAVE_FILE_AS);
-                fgets(save_dest, MAX_PATH, stdin);
+                fgets(save_dest, MAX_PATH - 1, stdin);
 
                 if (NoLfLen(save_dest) <= 0)
                 {
@@ -2659,7 +2659,6 @@ int main(int argc, char *argv[])
                             wrapSize,
                             YSCROLL);
                         DisplayFileContent(&Tab_stack[file_index], stdout, 0);
-                        DEBUG
                     }
                 }
 
@@ -2667,7 +2666,6 @@ int main(int argc, char *argv[])
             }
         }
         else
-
         {
             if (ch > 31 || (ch == TAB && CheckKey(TAB))) // Printable character
             {

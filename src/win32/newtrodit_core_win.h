@@ -1198,7 +1198,7 @@ char *GetLogFileName()
 	}
 	else
 	{
-		snprintf(buf, MAX_PATH, "%snewtrodit.log");
+		snprintf(buf, MAX_PATH, "newtrodit.log");
 	}
 	return buf;
 }

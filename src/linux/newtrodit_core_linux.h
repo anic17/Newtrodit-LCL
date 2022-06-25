@@ -1324,7 +1324,7 @@ int GetConsoleInfo(int type)
   {
     EchoOff();
     CanonOff();
-    int *X, *Y;
+    int *X = 0, *Y = 0;
     printf("\x1B[6n");
     scanf("\x1B[%d;%dR", X, Y);
     return *X;
@@ -1334,7 +1334,7 @@ int GetConsoleInfo(int type)
   {
     EchoOff();
     CanonOff();
-    int *X, *Y;
+    int *X = 0, *Y = 0;
     printf("\x1B[6n");
     scanf("\x1B[%d;%dR", X, Y);
     return *Y;
