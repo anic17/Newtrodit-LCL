@@ -182,9 +182,9 @@ void DisplayCursorPos(int xps, int yps)
 {
 	size_t len = strlen(NEWTRODIT_DIALOG_BOTTOM_HELP);
 	gotoxy(len, BOTTOM);
-	
+
 	printf(longPositionDisplay ? "Line %d, Column %d" : "Ln %d, Col %d", yps, xps + 1); // +1 because it's zero indexed
-	
+
 	//ClearPartial(GetConsoleInfo(XCURSOR), BOTTOM, wrapSize - GetConsoleInfo(XCURSOR), 1);
 }
 
