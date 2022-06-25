@@ -270,6 +270,7 @@ int QuitProgram(int color_quit)
 		SetColor(color_quit);
 		ClearScreen();
 		SetCursorSettings(true, CURSIZE);
+		RestoreConsoleBuffer();
 		ExitRoutine(0);
 	}
 	else

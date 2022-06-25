@@ -30,7 +30,11 @@
         manual.c           : Manual
         newtrodit.c        : Main source file
         newtrodit_core.h   : All core functions
+            ~ win32/newtrodit_core_win.h
+            ~ linux/newtrodit_core_linux.h
         newtrodit_func.c   : Main functions
+            ~ win32/newtrodit_core_win.h
+            ~ linux/newtrodit_core_linux.h
         newtrodit_gui.c    : GUI loading
         newtrodit_syntax.h : Syntax highlighting
 
@@ -90,14 +94,14 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
         "convertnull",
         "converttab",
         "cursize",
-        "curinsert"
+        "curinsert",
         "devmode",
         "linecount",
         "linecountwide",
         "macro",
         "manfile",
         "menucolor",
-        "mouse"
+        "mouse",
         "newline",
         "oldkeybinds",
         "sigsegv",
@@ -2292,7 +2296,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (ch == 17) // ^Q = Quit program (only with oldKeybinds = false)
+        if (ch == 17) // ^Q = Quit program
         {
             if (!useOldKeybinds)
             {
@@ -2304,8 +2308,7 @@ int main(int argc, char *argv[])
                     ShowBottomMenu();
                     SetColor(bg_color);
                     ch = 0;
-                    RestoreConsoleBuffer();
-                    return 0;
+                    continue;
                 }
             }
         }
