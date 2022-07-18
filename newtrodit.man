@@ -1,4 +1,4 @@
-$NEWTRODIT_MANUAL
+$NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic number)
 [1mWhat is Newtrodit?[0m
 
  Newtrodit is a console-based text editor. As Windows doesn't include a console text editor, 
@@ -11,16 +11,17 @@ $NEWTRODIT_MANUAL
 
  newtrodit [switches] [file]
 
-         --fontcolor, -fc  Changes the font color.
+         --convertnull, -n Converts null characters to spaces.
          --converttab, -t  Converts tabs to spaces.
-         --convertnull, -n Converts nulls characters to spaces.
          --devmode, -d     Enables developer mode.
-         --menucolor, -mc  Changes Newtrodit's menus color.
+         --fontcolor, -f   Changes the font color.
          --help, -h        Opens this Newtrodit help manual.
-         --lfunix, -ln     Changes the line ending to UNIX (LF).
-         --lfwin, -lw      Changes the line ending to Windows (CRLF).
+         --lfunix, -n      Changes the line ending to UNIX (LF).
+         --lfwin, -w       Changes the line ending to Windows (CRLF).
          --line, -l        Displays line number.
-         --sigsegv, -s     Displays a message when a SIGSEGV (Segmentation fault) is caught.
+         --menucolor, -c   Changes Newtrodit's menus color.
+         --mouse, -m       Enables mouse support.
+         --syntax, -s      Enables syntax highlighting.
          --version, -v     Shows Newtrodit's version.
 
  Unlike previous versions, switches can go at any position, before or after file/files.
@@ -38,7 +39,7 @@ $NEWTRODIT_MANUAL
 
  [37;113;235;37;1mKeybinds[0m
 
- [37;113;235;37;1mKeybinds are written as follows:[0m
+ [37;113;235;37;1mKeybinds are written as follows[0m
 
  '[38;2;207;50;68;4m^[0m'     = Control
  '[38;2;207;50;68;4mA-[0m'    = Alt
@@ -57,32 +58,41 @@ $NEWTRODIT_MANUAL
 
  [38;2;207;50;68;4m^C[0m        = Copy line to clipboard
  [38;2;207;50;68;4m^D[0m        = Show line content (requires developer mode)
+ [38;2;207;50;68;4m^E[0m        = Toggle syntax highlighting
  [38;2;207;50;68;4m^F[0m        = Find string
  [38;2;207;50;68;4m^G[0m        = Go to a specific line
  [38;2;207;50;68;4m^H[0m        = Replace string
+ [38;2;207;50;68;4m^I[0m        = Show information about the currently edited file
  [38;2;207;50;68;4m^L[0m        = Toggle line count
- [38;2;207;50;68;4m^N[0m        = New file
- [38;2;207;50;68;4m^O[0m        = Open file
- [38;2;207;50;68;4m^R[0m        = Reload file (same as '[38;2;207;50;68;4m^N[0m' and '[38;2;207;50;68;4m^O[0m')
+ [38;2;207;50;68;4m^M[0m        = Toggle mouse support
+ [38;2;207;50;68;4m^N[0m        = Open a new tab
+ [38;2;207;50;68;4m^O[0m        = Open a file
+ [38;2;207;50;68;4m^Q[0m        = Exit Newtrodit
+ [38;2;207;50;68;4m^R[0m        = Reload the currently edited file from disk
  [38;2;207;50;68;4m^S[0m        = Save file
+ [38;2;207;50;68;4m^V[0m        = Paste line
  [38;2;207;50;68;4m^W[0m        = Close current file
- [38;2;207;50;68;4m^V[0m        = Paste line from clipboard
- [38;2;207;50;68;4m^X[0m        = Exit Newtrodit
+ [38;2;207;50;68;4m^X[0m        = Cut line
 
- [38;2;207;50;68;4mS-^F[0m      = Find string (case insensitive)
- [38;2;207;50;68;4mS-^H[0m      = Same as [38;2;207;50;68;4mF1[0m (shows help manual)
- [38;2;207;50;68;4mS-^L[0m      = Locate files. See the advanced section for more information.
- [38;2;207;50;68;4mS-^R[0m      = Reload settings
- [38;2;207;50;68;4mS-^S[0m      = Save file as
+ [38;2;207;50;68;4mS-^C[0m      = Compare files
  [38;2;207;50;68;4mS-^D[0m      = Toggle dev mode
+ [38;2;207;50;68;4mS-^E[0m      = Load a syntax highlighting scheme
+ [38;2;207;50;68;4mS-^F[0m      = Find string (case insensitive)
+ [38;2;207;50;68;4mS-^H[0m      = Same as [38;2;207;50;68;4mF1[0m (opens help)
+ [38;2;207;50;68;4mS-^K[0m      = Toggles old keybindings (see later)
+ [38;2;207;50;68;4mS-^L[0m      = Locate files. See the advanced section for more information.
  [38;2;207;50;68;4mS-^N[0m      = Toggle null character to spaces conversion
+ [38;2;207;50;68;4mS-^R[0m      = Reload the settings
+ [38;2;207;50;68;4mS-^S[0m      = Save file as
  [38;2;207;50;68;4mS-^T[0m      = Toggle tab to spaces conversion
 
  [37;113;235;37;1mAlt keybinds[0m
 
  [38;2;207;50;68;4mA-Home[0m    = Go to the beginning of the first non-blank space
+ [38;2;207;50;68;4mA-^L[0m      = Convert current line to lowercase
  [38;2;207;50;68;4mA-^N[0m      = Create a new empty file and save it (same as '[38;2;207;50;68;4m^N[0m' and '[38;2;207;50;68;4m^S[0m')
  [38;2;207;50;68;4mA-^R[0m      = Encode/decode line using ROT13 algorithm
+ [38;2;207;50;68;4mA-^U[0m      = Convert current line to uppercase
 
  [37;113;235;37;1mFunction keys keybinds[0m
 
@@ -91,12 +101,16 @@ $NEWTRODIT_MANUAL
  [38;2;207;50;68;4mF3[0m        = Next find occurrence (can only be used after '[38;2;207;50;68;4m^F[0m')
  [38;2;207;50;68;4mF5[0m        = Runs a macro, if a macro hasn't been defined yet, it will run the current file
  [38;2;207;50;68;4mF6[0m        = Adds current date and time
+ [38;2;207;50;68;4mF9[0m        = Compiles current file with the specified compiler (default compiler is 'gcc')
  [38;2;207;50;68;4mF10[0m       = Opens containing directory in Windows Explorer
+ [38;2;207;50;68;4mF11[0m       = Toggle fullscreen mode
 
  [38;2;207;50;68;4m^F1[0m       = About Newtrodit
  [38;2;207;50;68;4m^F4[0m       = Close current file (same as [38;2;207;50;68;4m^W[0m)
  
+ [38;2;207;50;68;4mS-F5[0m      = Defines a macro for the current instance (use 'macro' in settings to set a permanent macro)
  [38;2;207;50;68;4mS-F10[0m     = Opens a terminal instance in current directory
+
  [38;2;207;50;68;4mA-F4[0m      = Same as [38;2;207;50;68;4m^X[0m (exits Newtrodit)
 
 
@@ -299,7 +313,7 @@ $NEWTRODIT_MANUAL
  [37;113;235;37;1mAbout Newtrodit[0m
  
  Newtrodit is a free open-source program created by anic17 with some contributions by other members.
- Started working at the ending of 2020, it's now another way to code in Windows.
+ Started working on it at the ending of 2020, it's now another way to code in Windows.
 
  Here's a list of people who contributed and helped in the creation of this project:
    - Karanveer Chouhan (TheKvc)   : Helped in lots of things.
