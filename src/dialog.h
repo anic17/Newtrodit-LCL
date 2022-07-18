@@ -23,7 +23,8 @@ char NEWTRODIT_ERROR_UNKNOWN[] = "Unknown error.";
 char NEWTRODIT_ERROR_CLIPBOARD_COPY[] = "Cannot copy string to clipboard.";
 char NEWTRODIT_ERROR_INVALID_XPOS[] = "Invalid X position for cursor.";
 char NEWTRODIT_ERROR_INVALID_YPOS[] = "Invalid Y position for cursor.";
-char NEWTRODIT_ERROR_INVALID_POS_RESET[] = "Invalid position for cursor detected. Going to home coordinates.";
+char NEWTRODIT_ERROR_MANUAL_INVALID_LINE[] = "Invalid line (maximum line number is "; // I could use NEWTRODIT_ERROR_INVALID_YPOS but I prefer more specific errors (or messages)
+char NEWTRODIT_ERROR_INVALID_POS_RESET[] = "Invalid position for cursor detected. Resetting coordinates.";
 char NEWTRODIT_ERROR_WINDOW_TOO_SMALL[] = "Console window is too small. Please resize it.";
 char NEWTRODIT_ERROR_MANUAL_TOO_BIG[] = "Manual file is too big.";
 char NEWTRODIT_ERROR_MISSING_MANUAL[] = "Manual file is missing: ";
@@ -43,6 +44,7 @@ char NEWTRODIT_ERROR_CANNOT_OPEN_DEVICE[] = "Cannot open device file: ";
 char NEWTRODIT_ERROR_CONSOLE_HANDLE[] = "Cannot get console handle.";
 char NEWTRODIT_LICENSE_INVALID_LICENSE[] = "Detected an invalid or outdated license file.";
 char NEWTRODIT_LICENSE_MISSING_LICENSE[] = "License file is missing: ";
+
 
 // Crashes
 

@@ -45,16 +45,15 @@ int DisplayFileContent(File_info *tstack, FILE *fstream, int starty);
 #endif
 #include "newtrodit_api.c"
 
-int DownArrow(int man_line_count)
+int DownArrow(int man_line_count, int maxlines)
 {
-	if (man_line_count + (YSIZE - 4) > 0)
-	{
-		man_line_count = man_line_count - (YSIZE - 4);
-	}
-	else
+	if (man_line_count + (YSIZE - 2) > maxlines)
 	{
 		man_line_count = man_line_count - (YSIZE - 3);
+	} else {
+		man_line_count = man_line_count - (YSIZE - 4);
 	}
+	
 	return man_line_count;
 }
 
@@ -78,75 +77,91 @@ int VTSettings(bool enabled)
 #endif
 }
 
-int ParseManual(char *line)
+int ParseMarkdown(char *line)
 {
-	char *styles[] = {
-		"\x1b[1m",
-		"\x1b[3m",
-		"\x1b[4m",
-		"\x1b[9m",
-	};
-	char *reset[] = {
-		"\x1b[22m",
-		"\x1b[23m",
-		"\x1b[24m",
-		"\x1b[29m",
-	};
-	bool is_bold = false, is_italic = false, is_underline = false, is_strike = false;
-	size_t len = strlen(line);
-	for (int i = 0; i < strlen(line); i++)
-	{
-		if (!strncmp(line + i, "**", 2))
-		{
-			is_bold = !is_bold;
-			is_bold ? printf("%s", styles[BOLD_INDEX]) : printf("%s", reset[BOLD_INDEX]);
-			i++;
-			continue;
-		}
-		else if (!strncmp(line + i, "__", 2))
-		{
-			is_underline = !is_underline;
-			is_underline ? printf("%s", styles[UNDERLINE_INDEX]) : printf("%s", reset[UNDERLINE_INDEX]);
-			i++;
-			continue;
-		}
-		else if (!strncmp(line + i, "~~", 2))
-		{
-			is_strike = !is_strike;
-			is_strike ? printf("%s", styles[STRIKE_INDEX]) : printf("%s", reset[STRIKE_INDEX]);
-			i++;
-			continue;
-		}
-		else if (!strncmp(line + i, "*", 1) || !strncmp(line + i, "_", 1))
-		{
-			is_italic = !is_italic;
-			is_italic ? printf("%s", styles[ITALIC_INDEX]) : printf("%s", reset[ITALIC_INDEX]);
-			continue;
-		}
-		else if (!strncmp(line + i, "\\", 1))
-		{
-			if (i < len)
-			{
-				putchar(line[++i]);
-			}
-			else
-			{
-				putchar(line[i]);
-			}
-		}
-		else if (!strncmp(line + i, ".  ", 3))
-		{
-			printf(".\n");
-			i += 2;
-			continue;
-		}
-		else
-		{
-			putchar(line[i]);
-		}
-	}
-	return 0;
+    char *styles[] = {
+        "\x1b[1m",
+        "\x1b[3m",
+        "\x1b[4m",
+        "\x1b[9m",
+    };
+    char *reset[] = {
+        "\x1b[22m",
+        "\x1b[23m",
+        "\x1b[24m",
+        "\x1b[29m",
+    };
+    bool is_bold = false, is_italic = false, is_underline = false, is_strike = false;
+    size_t len = strlen(line), skipchars = 0;
+    bool used = 0;
+    for (int i = 0; i < strlen(line); i++)
+    {
+        if (!strncmp(line + i, "**", 2))
+        {
+            is_bold = !is_bold;
+            is_bold ? printf("%s", styles[BOLD_INDEX]) : printf("%s", reset[BOLD_INDEX]);
+            i++;
+            used = false;
+            continue;
+        }
+        else if (!strncmp(line + i, "__", 2))
+        {
+            is_underline = !is_underline;
+            is_underline ? printf("%s", styles[UNDERLINE_INDEX]) : printf("%s", reset[UNDERLINE_INDEX]);
+            i++;
+            used = false;
+            continue;
+        }
+        else if (!strncmp(line + i, "~~", 2))
+        {
+            is_strike = !is_strike;
+            is_strike ? printf("%s", styles[STRIKE_INDEX]) : printf("%s", reset[STRIKE_INDEX]);
+            i++;
+            used = false;
+            continue;
+        }
+        else if (!strncmp(line + i, "*", 1) || !strncmp(line + i, "_", 1))
+        {
+            is_italic = !is_italic;
+            is_italic ? printf("%s", styles[ITALIC_INDEX]) : printf("%s", reset[ITALIC_INDEX]);
+            used = false;
+            continue;
+        }
+        else if (!strncmp(line + i, "\\", 1))
+        {
+            if (i < len)
+            {
+                putchar(line[++i]);
+            }
+            else
+            {
+                putchar(line[i]);
+            }
+            used = false;
+        }
+        else if (!strncmp(line + i, ".  ", 3))
+        {
+            printf(".\n");
+            i += 2;
+            continue;
+            used = false;
+        }
+        else
+        {
+            skipchars++;
+            used = true;
+        }
+        if (!used && skipchars != 0)
+        {
+            fwrite(line + i, sizeof(char), skipchars, stdout);
+            skipchars = 0;
+			used=false;
+        }
+    }
+    return 0;
 }
+
+
 int NewtroditHelp()
 {
 
@@ -305,7 +320,12 @@ int NewtroditHelp()
 				}
 				else
 				{
+					#if 0
+									ParseMarkdown(manual_buf[man_line_count]);
+								#else
+
 					printf("%.*s\n", MANUAL_BUFFER_X, manual_buf[man_line_count]);
+#endif
 				}
 				man_line_count++;
 			}
@@ -361,7 +381,7 @@ int NewtroditHelp()
 			break;
 		case 13: // Enter
 			fputs(reset_color, stdout);
-			man_line_count = DownArrow(man_line_count);
+			man_line_count = DownArrow(man_line_count, max_manual_lines);
 			break;
 		case 224:
 			manual_ch = getch();
@@ -421,7 +441,11 @@ int NewtroditHelp()
 				break;
 			case 80: // Down arrow
 				fputs(reset_color, stdout);
-				man_line_count = DownArrow(man_line_count);
+				man_line_count = DownArrow(man_line_count, max_manual_lines);
+				if(man_line_count >= max_manual_lines)
+				{
+					
+				}
 				break;
 			default:
 				// man_line_count = man_line_count - (1 * (YSIZE - 3));
@@ -436,9 +460,9 @@ int NewtroditHelp()
 			gotoline_man = TypingFunction('0', '9', strlen(itoa_n(MANUAL_BUFFER_Y)));
 			if (atoi(gotoline_man) < 0 || atoi(gotoline_man) > max_manual_lines || atoi(gotoline_man) >= MANUAL_BUFFER_Y) // Line is less than 1
 			{
-				PrintBottomString(NEWTRODIT_ERROR_INVALID_YPOS);
+				PrintBottomString(join(join(NEWTRODIT_ERROR_MANUAL_INVALID_LINE, itoa_n(max_manual_lines)), ")"));
 				getch_n();
-				man_line_count -= -(1 * (YSIZE - 3));
+				man_line_count -= (1 * (YSIZE - 3));
 			}
 			else
 			{

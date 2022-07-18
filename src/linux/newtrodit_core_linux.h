@@ -23,6 +23,10 @@
 #error "A newtrodit_core file has already been included"
 #endif
 
+#ifndef __GLIBC_USE
+#define __GLIBC_USE 1
+#endif
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +34,8 @@
 
 #include <linux/input.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -252,8 +258,10 @@ typedef struct File_info
   time_t fread_time;  // The time Newtrodit read the file
 } File_info;          // File information. This is used to store all the information
                       // about the file.
+
 Startup_info SInf;
 File_info Tab_stack[MAX_TABS];
+struct termios orig_termios;
 
 /* ========================== LINUX REQUIRED FUNCTIONS =========================== */
 void EchoOff()
@@ -290,65 +298,175 @@ void CanonOff()
 }
 
 /* Convert hex to ANSI (BIOS to ANSI standards)*/
-char* HexToAnsi(int num)
+char *HexToAnsi(int num)
 {
-    char hex_table[16] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
-    char ansi_table[16] = {30, 34, 32, 36, 31, 35, 33, 37, 90, 94, 91, 95, 92, 96, 93, 97};
-    char* buf = (char*)calloc(1, sizeof(char) * 32); // Allocate enough memory
-    if (num < 0 || num > 0xff) // Keep a valid number range
-    {
-        return NULL;
-    }
-    int font = 0, background = 0;
-    if (num > 0xf)
-    {
-        font = ansi_table[num >> 4] + 10;
-        background = ansi_table[num & 0xf];
-        snprintf(buf, 32*sizeof(char), "\x1b[%d;%dm", font, background);
-    }
-    else
-    {
-        font = ansi_table[num];
-        snprintf(buf, 32*sizeof(char), "\x1b[%dm", font);
-    }
-    return buf;
+  char hex_table[16] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
+  char ansi_table[16] = {30, 34, 32, 36, 31, 35, 33, 37, 90, 94, 91, 95, 92, 96, 93, 97};
+  char *buf = (char *)calloc(1, sizeof(char) * 32); // Allocate enough memory
+  if (num < 0 || num > 0xff)                        // Keep a valid number range
+  {
+    return NULL;
+  }
+  int font = 0, background = 0;
+  if (num > 0xf)
+  {
+    font = ansi_table[num >> 4] + 10;
+    background = ansi_table[num & 0xf];
+    snprintf(buf, 32 * sizeof(char), "\x1b[%d;%dm", font, background);
+  }
+  else
+  {
+    font = ansi_table[num];
+    snprintf(buf, 32 * sizeof(char), "\x1b[%dm", font);
+  }
+  return buf;
+}
+
+int rawMode(int fd)
+{
+  /* This is taken from kilo, make sure to check the project at https://github.com/antirez/kilo */
+  struct termios raw;
+
+  if (!isatty(STDIN_FILENO) || tcgetattr(fd, &orig_termios) == -1)
+  {
+    perror("rawMode()");
+    return 0;
+  }
+
+  raw = orig_termios; /* modify the original mode */
+  /* input modes: no break, no CR to NL, no parity check, no strip char,
+   * no start/stop output control. */
+  raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+  /* output modes - disable post processing */
+  // raw.c_oflag &= ~(OPOST);
+  /* control modes - set 8 bit chars */
+  raw.c_cflag |= (CS8);
+  /* local modes - choing off, canonical off, no extended functions,
+   * no signal chars (^Z,^C) */
+  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+  /* control chars - set return condition: min number of bytes and timer. */
+  raw.c_cc[VMIN] = 0;  /* Return each byte, or zero for timeout. */
+  raw.c_cc[VTIME] = 1; /* 100 ms timeout (unit is tens of second). */
+  if (tcsetattr(fd, TCSAFLUSH, &raw) < 0)
+  {
+    perror("tcsetattr()");
+    return 0;
+  }
+  return 1;
 }
 
 /* reads from keypress, doesn't echo */
 int getch()
 {
-  char buf = 0;
-  struct termios old = {0}, new = {0};
-  fflush(stdout);
-  if (tcgetattr(0, &old) < 0 || tcgetattr(0, &new) < 0)
+  if (!rawMode(STDIN_FILENO))
   {
-    perror("tcsetattr()");
+    last_known_exception = NEWTRODIT_ERROR_CONSOLE_HANDLE;
+    return 1;
   }
-  new.c_lflag &= ~(ICANON | ISIG | ECHO);
-  new.c_iflag = 0;
-  new.c_cc[VMIN] = 1;
-  new.c_cc[VTIME] = 0;
-  if (tcsetattr(0, TCSAFLUSH, &new) < 0)
-    perror("tcsetattr ICANON");
-  if (read(0, &buf, 1) < 0)
-    perror("read()");
-  if (tcsetattr(0, TCSADRAIN, &old) < 0)
-    perror("tcsetattr ~ICANON");
-  return buf;
-}
+  signed char buf[100] = {0}, seq[100] = {0}; // Have enough space for all the buffer
+  int numread;
+  int key = 0;
+  int shiftbits = 7;
 
-/* reads from keypress, echoes */
-int getche(void)
-{
-  struct termios oldattr, newattr;
-  int ch;
-  tcgetattr(STDIN_FILENO, &oldattr);
-  newattr = oldattr;
-  newattr.c_lflag &= ~(ICANON);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
-  ch = getchar();
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
-  return ch;
+  bool is_esc = false;
+  bool is_ctrl = false;
+  bool is_ctrl2 = false;
+  bool is_tilde = false;
+
+  is_esc = false;
+
+  is_ctrl = false;
+  is_ctrl2 = false;
+
+  numread = read(STDIN_FILENO, &buf, 2);
+  if (buf[0] == 27)
+  {
+    is_esc = true;
+    if (numread > 1) // Control code
+    {
+      is_ctrl = true;
+      // Key encoding starts here
+      if (!(buf[1] == '[' || buf[1] == 'O')) // -30 is signed 226
+      {
+        if (buf[1] != -30)
+        {
+
+          memcpy(seq, buf, numread);
+        }
+        else
+        {
+          /* Hack to fix the weird bug with keyboards with Euro (€) character, as Ctrl+Alt is
+           the same as AltGr, making Ctrl-Alt-E the same as AltGr-E thus printing the Euro character */
+          read(STDIN_FILENO, seq, numread);
+          memset(seq, 0, numread);
+
+          memcpy(seq, "\x1b\x05", 2); // Overwrite the last read as that's how Ctrl-Alt-E should be
+        }
+        numread = 2;
+      }
+      else
+      {
+
+        numread = read(STDIN_FILENO, &seq, sizeof(seq));
+        if (numread < 0)
+        {
+
+          if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) < 0)
+          {
+            last_known_exception = NEWTRODIT_ERROR_CONSOLE_HANDLE;
+          }
+        }
+      }
+
+      if (numread > 5)
+      {
+        numread = 5; // Trim to the first 7 characters (5 + 2 from before)
+      }
+      key = 0;
+      for (int i = 0; i < numread; i++)
+      {
+        if (seq[i] < 0x80)
+        {
+          key += seq[i] << shiftbits;
+          shiftbits += 7;
+        }
+        else
+        {
+          // printf("[ERROR] Character bigger than 0x7f (127) '%c'\n", seq[i]);
+        }
+        if (i == 4) // Length 7, should only be called in Control-F5 to Control-F12
+        {
+          if (seq[i] == '~')
+          {
+            key |= (ESC_BITMASK | TILDE_BITMASK); // Set bitmask and escape bits
+          }
+        }
+      }
+      // Set the corresponding 2 bits
+      if (buf[1] == 91)
+      {
+        key |= (ESC_BITMASK | CTRLCHAR_BITMASK);
+      }
+      else
+      {
+        key |= (ESC_BITMASK | FKEYS_BITMASK);
+      }
+    }
+    else
+    {
+      key = buf[0];
+    }
+  }
+
+  else
+  {
+    key = buf[0];
+  }
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) < 0) // Restore original mode
+  {
+    last_known_exception = NEWTRODIT_ERROR_CONSOLE_HANDLE;
+  }
+  return key;
 }
 
 /* =================================== TERM ====================================== */
@@ -943,7 +1061,7 @@ char *StringToJSON(char *s)
 /* Checks the physical state of a key (Pressed or not pressed) */
 int CheckKey(int keycode)
 {
-  return 1;
+  return false;
 }
 
 /* Get absolute path to a file on the drive */
@@ -1026,16 +1144,10 @@ int CheckFile(char *filename)
   return (((access(filename, 0)) != -1 && (access(filename, 6)) != -1)) ? 0 : 1;
 }
 
-/* Improved getch(), returns all codes in a single call */
+/* This function is the same as getch() because everything we need to do is already done */
 int getch_n()
 {
-  int gc_n;
-  gc_n = getch();
-  if (gc_n == 0 || gc_n == 0xE0)
-  {
-    gc_n += 255;
-    gc_n += getch();
-  }
+  int gc_n = getch();
   return gc_n;
 }
 
@@ -1052,7 +1164,7 @@ char *itoa_n(int n)
   return s;
 }
 
-char *lltoa_n(long long n) // https://stackoverflow.com/a/18858248/12613647
+char *lltoa_n(long long n) // https://stackoverflow.com/a/18858248
 {
 
   static char buf[256] = {0};
@@ -1254,7 +1366,7 @@ void StartProcess(char *command_line)
 }
 int SetTitle(char *s)
 {
-// Linux TODO
+  printf("\033]0;%s\007", s);
 }
 
 char *get_path_directory(char *path, char *dest) // Not a WinAPI function
@@ -1324,7 +1436,7 @@ int GetConsoleInfo(int type)
   {
     EchoOff();
     CanonOff();
-    int *X = 0, *Y = 0;
+    int *X, *Y;
     printf("\x1B[6n");
     scanf("\x1B[%d;%dR", X, Y);
     return *X;
@@ -1418,7 +1530,7 @@ int AllocateBufferMemory(File_info *tstack)
   {
     tstack->Syntaxinfo.keywords[i] = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
     tstack->Syntaxinfo.keywords[i] = strdup(keywords[i].keyword);
-    tstack->Syntaxinfo.color[i] = (int)calloc(1, sizeof(int));
+    // tstack->Syntaxinfo.color[i] = (int*)calloc(1, sizeof(int));
     tstack->Syntaxinfo.color[i] = keywords[i].color;
   }
   tstack->Syntaxinfo.multi_line_comment = false;

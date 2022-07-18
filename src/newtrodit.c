@@ -33,8 +33,8 @@
             ~ win32/newtrodit_core_win.h
             ~ linux/newtrodit_core_linux.h
         newtrodit_func.c   : Main functions
-            ~ win32/newtrodit_core_win.h
-            ~ linux/newtrodit_core_linux.h
+            ~ win32/newtrodit_func_win.c
+            ~ linux/newtrodit_func_linux.c
         newtrodit_gui.c    : GUI loading
         newtrodit_syntax.h : Syntax highlighting
 
@@ -124,6 +124,8 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
         setting_buf[strcspn(setting_buf, "\n")] = 0; // Remove newline
 
         cnt = strspn(setting_buf, " \t");
+        // memmove(&setting_buf[0], &setting_buf[cnt], (strlen(setting_buf) - cnt));
+        //  memset(&setting_buf[strlen(setting_buf) - cnt], 0, (strlen(setting_buf) - cnt));
         snprintf(setting_buf, sizeof(setting_buf), "%s", setting_buf - 1);
 
         if (setting_buf[cnt] == ';' || setting_buf[cnt] == 0) // Comment or newline found
@@ -256,6 +258,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     }
                     if (!strcmp(setting_list[i], "syntax"))
                     {
+
                         RemoveQuotes(token, strdup(token)); // Remove quotes
                         if (ValidFileName(token))
                         {
@@ -419,7 +422,6 @@ int main(int argc, char *argv[])
         printf("%.*s\n", wrapSize, NEWTRODIT_ERROR_OUT_OF_MEMORY);
         ExitRoutine(ENOMEM);
     }
-
     old_open_files = (char **)malloc(MAX_PATH * sizeof(char *));
 
     for (int i = 1; i < MIN_BUFSIZE; i++)
@@ -564,7 +566,11 @@ int main(int argc, char *argv[])
         {
             dev_tools = true;
         }
-        else if (!strcmp(argv[arg_parse], "--menucolor") || !strcmp(argv[arg_parse], "-m")) // Foreground color parameter
+        else if (!strcmp(argv[arg_parse], "--mouse") || !strcmp(argv[arg_parse], "-m")) // Use mouse
+        {
+            partialMouseSupport = true;
+        }
+        else if (!strcmp(argv[arg_parse], "--menucolor") || !strcmp(argv[arg_parse], "-c")) // Foreground color parameter
         {
             if (argv[arg_parse + 1] != NULL)
             {
@@ -710,9 +716,8 @@ int main(int argc, char *argv[])
             DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
         }
         // wrapSize = XSIZE - 2 - ((lineCount ? Tab_stack[file_index].linecount_wide : 0));
-        lineCount ? (wrapSize = XSIZE - 1 - Tab_stack[file_index].linecount_wide) : (wrapSize = XSIZE - 1);
 
-        (wrapSize < 0) ? wrapSize = 0 : wrapSize; // Check if wrapSize is negative
+        SetWrapSize();
 
         SetDisplayCursorPos(&Tab_stack[file_index]);
 #ifdef _WIN32
@@ -1008,7 +1013,7 @@ int main(int argc, char *argv[])
         }
         if (ch == 15) // ^O = Open file
         {
-            if (!CheckKey(VK_SHIFT)) // Shift not pressed
+            // if (!CheckKey(VK_SHIFT)) // Shift not pressed
             {
                 if (Tab_stack[file_index].is_modified)
                 {
@@ -1200,13 +1205,16 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == ESCARROW) // Special keys: 224
+        if (ch & BIT_ESC224) // Special keys: 224
         {
 
-            ch = getch();
             c = -32;
 
+#ifdef _WIN32
+            switch (ch & (~BIT_ESC224))
+#else
             switch (ch)
+#endif
             {
 
             case UP:
@@ -1219,11 +1227,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos - 1][Tab_stack[file_index].xpos] == 9)
-                        {
-                            Tab_stack[file_index].xpos += relative_xpos[Tab_stack[file_index].ypos - 1];
-                        }
-                        --Tab_stack[file_index].ypos;
+                        Tab_stack[file_index].ypos--;
                     }
                     /* if(Tab_stack[file_index].display_y >= YSIZE - 2 && Tab_stack[file_index].display_y > 1)
                     {
@@ -1752,10 +1756,13 @@ int main(int argc, char *argv[])
             ch = 0;
             continue;
         }
-        if (ch == 0)
+#ifdef _WIN32
+        if (ch & BIT_ESC0)
+#else
+        if (ch & BIT_ESC224)
+#endif
         {
-            ch = getch();
-            switch (ch)
+            switch (ch & ~(BIT_ESC0))
             {
             case 19: // ^A-R (ROT13)
                 memset(temp_strsave, 0, BUFFER_X);
@@ -1775,19 +1782,6 @@ int main(int argc, char *argv[])
                 gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
                 print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
                 break;
-            case 32: // A-^D (Debug memory)
-                if (dev_tools)
-                {
-                    printf("%p,%p\n", &Tab_stack[file_index].xpos, &Tab_stack[file_index].ypos);
-                    n = 0;
-                    printf("Address to change: ");
-                    scanf("%x", &n);
-                    printf("Value to change to: ");
-                    scanf("%x", &n2);
-                    // Change the specified address n to n2
-                    n = n2;
-                    break;
-                }
 
             case 38: // A-^L (Lowercase)
                 for (int i = 0; i < strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]); i++)
@@ -1948,6 +1942,13 @@ int main(int argc, char *argv[])
                 }
 
                 break;
+
+            case 67: // F9 = Compile
+                StartProcess(join(join(Tab_stack[file_index].Compilerinfo.path, " "), Tab_stack[file_index].Compilerinfo.flags));
+                break;
+            case 68:                            // F10 key
+                StartProcess("explorer.exe ."); // Open current directory in explorer
+                break;
             case 88: // S-F5 (Set macro)
                 PrintBottomString(NEWTRODIT_PROMPT_CREATE_MACRO);
                 fgets(macro_input, sizeof(macro_input), stdin);
@@ -1975,20 +1976,13 @@ int main(int argc, char *argv[])
                 ShowBottomMenu();
                 DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
                 break;
-            case 69: // F9 = Compile
-                StartProcess(join(join(Tab_stack[file_index].Compilerinfo.path, " "), Tab_stack[file_index].Compilerinfo.flags));
-                break;
-            case 68:                            // F10 key
-                StartProcess("explorer.exe ."); // Open current directory in explorer
-                break;
             case 93:                     // S-F10 key
                 StartProcess("cmd.exe"); // Open command prompt
                 break;
             case 94: // ^F1 key
-                LoadAllNewtrodit();
+                SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
+                ClearPartial(0, 1, XSIZE, YSIZE - 1);
                 n = strlen(join("Contribute at ", newtrodit_repository));
-                ClearPartial(0, BOTTOM, XSIZE, 1); // Clear bottom line where "For help, press F1" is displayed
-                DisplayCursor(false);
                 SetColor(fg_color);
                 ClearPartial((XSIZE / 2) - (n / 2) - 1, (YSIZE / 2) - 3, n + 2, 7); // Create a box
                 CenterText("About Newtrodit", (YSIZE / 2) - 2);
@@ -1996,8 +1990,12 @@ int main(int argc, char *argv[])
                 // I know it's not the best way to do it, but it works
                 CenterText(join("Contribute at ", newtrodit_repository), (YSIZE / 2) + 2);
                 getch_n();
-                LoadAllNewtrodit();
+                ClearPartial(0, 1, XSIZE, YSIZE - 1);
+                ShowBottomMenu();
+                DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
                 DisplayFileContent(&Tab_stack[file_index], stdout, 0);
+                SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
+
                 break;
             case 97: // ^F4
                 if (!CheckKey(VK_SHIFT))
@@ -2298,18 +2296,17 @@ int main(int argc, char *argv[])
 
         if (ch == 17) // ^Q = Quit program
         {
-            if (!useOldKeybinds)
-            {
+
 #ifdef _WIN32
-                if (!CheckKey(VK_SHIFT))
+            if (!CheckKey(VK_SHIFT))
 #endif
-                {
-                    QuitProgram(SInf.color);
-                    ShowBottomMenu();
-                    SetColor(bg_color);
-                    ch = 0;
-                    continue;
-                }
+            {
+                QuitProgram(SInf.color);
+
+                ShowBottomMenu();
+                SetColor(bg_color);
+                ch = 0;
+                continue;
             }
         }
         if (ch == 24) // ^X = Cut
@@ -2361,7 +2358,7 @@ int main(int argc, char *argv[])
 
             continue;
         }
-        if (ch == 127) // ^BS
+        if (ch == CTRLBS) // ^BS
         {
             if (Tab_stack[file_index].xpos > 0)
             {
@@ -2464,14 +2461,18 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 9 && !CheckKey(VK_TAB)) // ^I = File info
+        if (ch == TAB && !CheckKey(VK_TAB)) // ^I = File info
         {
-            CountBufferLines(&Tab_stack[file_index]);
+            if (!CheckKey(VK_SHIFT))
+            {
+                CountBufferLines(&Tab_stack[file_index]);
 
-            snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%lu lines). Syntax highlighting: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (size_t)Tab_stack[file_index].linecount, Tab_stack[file_index].Syntaxinfo.syntax_lang);
-            PrintBottomString(tmp);
-            c = -2;
-            ch = 0;
+                ptr = extension_filetype(Tab_stack[file_index].filename);
+                snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%lu lines). File type: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (size_t)Tab_stack[file_index].linecount, ptr);
+                PrintBottomString(tmp);
+                c = -2;
+                ch = 0;
+            }
         }
         if (ch == 26) // ^Z = Undo
         {
@@ -2584,9 +2585,12 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        #ifdef _WIN32
         if ((ch == BS && _NEWTRODIT_OLD_SUPPORT == 1) || (ch == BS && CheckKey(BS) && !CheckKey(VK_CONTROL))) // BS key (Avoiding Control-H)
+        #else
+        if(ch == BS)
+        #endif
         {
-
             c = -8; // Negative to avoid conflict
             if (Tab_stack[file_index].xpos > 0)
             {
@@ -2629,7 +2633,13 @@ int main(int argc, char *argv[])
                 else
                 {
                     Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos - 1] = '\0';
+                    //#ifdef _WIN32
                     fputs("\b \b", stdout);
+                  /*   #else
+                        ClearPartial(GetConsoleInfo(XCURSOR), Tab_stack[file_index].display_y, 1, 1);
+                        printf("egfqhwef");
+                        getch_n();
+                    #endif */
                 }
                 if (syntaxHighlighting)
                 {
@@ -2658,9 +2668,11 @@ int main(int argc, char *argv[])
                             ); */
                         ClearPartial(
                             (lineCount ? Tab_stack[file_index].linecount_wide : 0),
-                            1,
+                            Tab_stack[file_index].display_y,
                             wrapSize,
-                            YSCROLL);
+                            YSIZE - Tab_stack[file_index].display_y - 1);
+                        ClearPartial(0, Tab_stack[file_index].display_y, (lineCount ? Tab_stack[file_index].linecount_wide : 0), 1);
+
                         DisplayFileContent(&Tab_stack[file_index], stdout, 0);
                     }
                 }
@@ -2670,7 +2682,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            if (ch > 31 || (ch == TAB && CheckKey(TAB))) // Printable character
+            if ((ch > 31 && ch != BS) || (ch == TAB && CheckKey(TAB))) // Printable character
             {
                 if (!Tab_stack[file_index].is_modified)
                 {

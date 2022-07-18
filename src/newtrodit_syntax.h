@@ -168,7 +168,7 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
             tstack->Syntaxinfo.keywords = (char **)realloc(tstack->Syntaxinfo.keywords, sizeof(char *) * (c + 1));
             tstack->Syntaxinfo.color = (int *)realloc(tstack->Syntaxinfo.color, sizeof(int) * (c + 1));
             tstack->Syntaxinfo.keywords[c] = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char)); // Allocate memory for the new keyword
-            tstack->Syntaxinfo.color[c] = (int)calloc(1, sizeof(int));
+            //tstack->Syntaxinfo.color[c] = (int)calloc(1, sizeof(int));
         }
         tstack->Syntaxinfo.keywords[c] = strdup(iniptr);
 
@@ -342,7 +342,8 @@ void color_line(char *line, int startpos, int override_color)
             }
             if (!memcmp(line + i, comment[0].keyword, strlen(comment[0].keyword)))
             {
-                SetCharColor(wrapSize - i - 1, Tab_stack[file_index].Syntaxinfo.comment_color + (16 * override_color), (lineCount ? Tab_stack[file_index].linecount_wide : 0) + i, GetConsoleInfo(YCURSOR)); // +1 because we want to also color the quote
+                
+                SetCharColor((len > wrapSize) ? (wrapSize - i) : (len - i), Tab_stack[file_index].Syntaxinfo.comment_color + (16 * override_color), (lineCount ? Tab_stack[file_index].linecount_wide : 0) + i, GetConsoleInfo(YCURSOR));
                 SetColor(Tab_stack[file_index].Syntaxinfo.default_color + (16 * override_color));
                 return;
             }

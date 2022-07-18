@@ -36,6 +36,14 @@ void BottomHelpBar()
 	return;
 }
 
+int SetWrapSize()
+{
+	lineCount ? (wrapSize = XSIZE - 1 - Tab_stack[file_index].linecount_wide) : (wrapSize = XSIZE - 1);
+
+	(wrapSize < 0) ? wrapSize = 0 : wrapSize; // Check if wrapSize is negative
+	return wrapSize;
+}
+
 int CenterText(char *text, int yps) // Algorithm: (XSIZE / 2) - (len / 2)
 {
 	SetColor(fg_color);
@@ -180,18 +188,21 @@ void NewtroditNameLoad()
 
 void DisplayCursorPos(int xps, int yps)
 {
+	int cursorvis = GetConsoleInfo(CURSOR_VISIBLE);
+	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
 	size_t len = strlen(NEWTRODIT_DIALOG_BOTTOM_HELP);
-	gotoxy(len, BOTTOM);
+	ClearPartial(len, BOTTOM, XSIZE - len, 1);
 
 	printf(longPositionDisplay ? "Line %d, Column %d" : "Ln %d, Col %d", yps, xps + 1); // +1 because it's zero indexed
-
-	//ClearPartial(GetConsoleInfo(XCURSOR), BOTTOM, wrapSize - GetConsoleInfo(XCURSOR), 1);
+	SetCursorSettings(cursorvis, GetConsoleInfo(CURSOR_SIZE));
+	// ClearPartial(GetConsoleInfo(XCURSOR), BOTTOM, wrapSize - GetConsoleInfo(XCURSOR), 1);
 }
 
 void LoadAllNewtrodit()
 {
 	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE)); // Hide cursor to reduce flickering
 	SetColor(bg_color);
+	SetWrapSize();
 
 	switch (clearAllBuffer)
 	{
@@ -257,14 +268,17 @@ void NewtroditCrash(char *crash_reason, int crash_retval)
 int QuitProgram(int color_quit)
 {
 	if (Tab_stack[file_index].is_modified) // Second condition should never happen
-	{
+	{	printf("readyok");
+
 		PrintBottomString(NEWTRODIT_PROMPT_SAVE_MODIFIED_FILE);
 		if (YesNoPrompt())
 		{
 			SaveFile(&Tab_stack[file_index]);
 		}
 	}
+
 	PrintBottomString(NEWTRODIT_PROMPT_QUIT);
+
 	if (YesNoPrompt())
 	{
 		SetColor(color_quit);

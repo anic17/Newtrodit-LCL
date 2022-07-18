@@ -53,6 +53,8 @@
 #define MAX_PATH 260
 #endif
 
+
+
 #if 0
 #define HORIZONTAL_SCROLL
 #endif
@@ -249,6 +251,7 @@ typedef struct File_info
 	FILETIME fwrite_time;
 	FILETIME fread_time;
 } File_info; // File information. This is used to store all the information about the file.
+
 
 Startup_info SInf;
 File_info Tab_stack[MAX_TABS];
@@ -465,7 +468,7 @@ size_t NoLfLen(char *s)
 	char *exclude = Tab_stack[file_index].newline;
 	if (!strchr(exclude, '\n')) // Always exclude a newline (\n) even if it's not present
 	{
-		strncat(exclude, "\n", 1);
+		strncat(exclude, "\n", 2);
 	}
 	size_t len = 0;
 	while (*s)
@@ -937,13 +940,19 @@ int CheckFile(char *filename)
 /* Improved getch(), returns all codes in a single call */
 int getch_n()
 {
-	int gc_n;
+	int gc_n = 0;
 	gc_n = getch();
-	if (gc_n == 0 || gc_n == 0xE0)
+	if (gc_n == 0)
 	{
-		gc_n += 255;
-		gc_n += getch();
+		gc_n = getch();
+		gc_n |= BIT_ESC0;
 	}
+	else if (gc_n == 0xE0)
+	{
+		gc_n = getch();
+		gc_n |= BIT_ESC224;
+	}
+
 	return gc_n;
 }
 
@@ -1012,6 +1021,7 @@ int YesNoPrompt()
 	int chr = 0;
 	while (1)
 	{
+		printf("albion online");
 		chr = getch_n();
 
 		if (tolower(chr) == 'y')
@@ -1166,7 +1176,7 @@ char *get_path_directory(char *path, char *dest) // Not a WinAPI function
 			}
 		}
 
-		memset(dest + tmp_int, 0, MAX_PATH - tmp_int);
+		memset(dest + tmp_int + 1, 0, MAX_PATH - tmp_int);
 
 		return dest;
 	}
@@ -1198,7 +1208,7 @@ char *GetLogFileName()
 	}
 	else
 	{
-		snprintf(buf, MAX_PATH, "newtrodit.log");
+		snprintf(buf, MAX_PATH, "%snewtrodit.log");
 	}
 	return buf;
 }

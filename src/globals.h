@@ -18,7 +18,7 @@
 */
 
 const char newtrodit_version[] = "0.6";
-const char newtrodit_build_date[] = "24/6/2022";
+const char newtrodit_build_date[] = "17/7/2022";
 const char newtrodit_repository[] = "https://github.com/anic17/Newtrodit";
 const char newtrodit_lcl_repository[] = "https://github.com/anic17/Newtrodit-LCL";
 char manual_file[MAX_PATH] = "newtrodit.man";
@@ -313,6 +313,15 @@ theme_t themelight = {
     .linecount_color = 0x07,
 };
 
+#define BIT_ESC224 0x80000000
+#define BIT_ESC0 0x40000000
+
+/* These four functions are only used on Newtrodit-LCL */
+#define ESC_BITMASK 0x80000000
+#define CTRLCHAR_BITMASK 0x40000000
+#define FKEYS_BITMASK 0x20000000
+#define TILDE_BITMASK 0x10000000
+
 enum CONTROL_CODES
 
 #ifdef _WIN32
@@ -322,7 +331,6 @@ enum CONTROL_CODES
     CTRLENTER = 10,
     ENTER = 13,
     CTRLBS = 127,
-    ESCARROW = 224,
 
     UP = 72,
     LEFT = 75,
@@ -360,36 +368,272 @@ enum CONTROL_CODES
     CTRLENTER = 10,
     ENTER = 13,
     CTRLBS = 8,
-    ESCARROW = 27,
 
-    /* Warning: There's an implicit 27 + (91<<8) removed to make all keybinds fit in a single int32_t */
-    UP = 65 << 8,
-    LEFT = 68 << 8,
-    RIGHT = 67 << 8,
-    DOWN = 66 << 8,
+    /*
+     Used an algorithm in order to encode and fit up to 7 characters into a single int32_t
+     Assuming characters are all lower than 0x80h (127d)
 
-    HOME = 72,
-    END = 70,
+     The algorithm is works by shifting up to 4 characters 7 bits to the left, using 28 of 32 available bits.
 
-    CTRLHOME = 49 + (59 << 8) + (53 << 16) + (72 << 24),
-    CTRLEND = 49 + (59 << 8) + (53 << 16) + (70 << 24),
+     The last 3 bytes are guaranteed to be boolean data so each character fits in a single bit.
+     The big endian bit is used to ensure that it is a control keybind starting with ESC.
 
-    INS = 82,
-    DEL = 83,
 
-    /* Different naming is between F1 and F4*/
-    F1,
-    F2,
-    F3,
-    F4,
+     This way we can place 7 characters into 4 bytes, or an int32_t.
 
-    F5 = 49 + (53 << 8) + (126 << 16),
-    F6 = 49 + (55 << 8) + (126 << 16),
-    F7 = 49 + (56 << 8) + (126 << 16),
-    F8 = 49 + (57 << 8) + (126 << 16),
-    F9 = 50 + (48 << 8) + (126 << 16),
-    F10 = 50 + (49 << 8) + (126 << 16),
-    F11 = 50 + (51 << 8) + (126 << 16),
-    F12 = 50 + (52 << 8) + (126 << 16),
+    */
+
+    LEFT = 0xc0002200,
+    UP = 0xc0002080,
+    DOWN = 0xc0002100,
+    RIGHT = 0xc0002180,
+
+    INS = 0xc01f9900,
+    DEL = 0xc01f9980,
+
+    HOME = 0xc0002400,
+    END = 0xc0002300,
+
+    PGUP = 0xc01f9a80,
+    PGDW = 0xc01f9b00,
+
+    SHIFTTAB = 0xc0002d00,
+
+    /* Different naming is used between F1 and F4 (termios-related things) */
+    F1 = 0xa0002800,
+    F2 = 0xa0002880,
+    F3 = 0xa0002900,
+    F4 = 0xa0002980,
+
+    F5 = 0xcfcd5880,
+    F6 = 0xcfcdd880,
+    F7 = 0xcfce1880,
+    F8 = 0xcfce5880,
+    F9 = 0xcfcc1900,
+    F10 = 0xcfcc5900,
+    F11 = 0xcfccd900,
+    F12 = 0xcfcd1900,
+
+    SHIFTF1 = 0xc64ed880,
+    SHIFTF2 = 0xd64ed880,
+    SHIFTF3 = 0xe64ed880,
+    SHIFTF4 = 0xf64ed880,
+
+    SHIFTF5 = 0xf76d5c70,
+    SHIFTF6 = 0xf76ddc70,
+    SHIFTF7 = 0xf76e1c70,
+    SHIFTF8 = 0xf76e5c70,
+    SHIFTF9 = 0xf76c1cf0,
+    SHIFTF10 = 0xf76c5cf0,
+    SHIFTF11 = 0xf76cdcf0,
+    SHIFTF12 = 0xf76d1cf0,
+
+    CTRLF1 = 0xc6aed880,
+    CTRLF2 = 0xd6aed880,
+    CTRLF3 = 0xe6aed880,
+    CTRLF4 = 0xf6aed880,
+    CTRLF5 = 0xd76d5c70,
+    CTRLF6 = 0xd76ddc70,
+    CTRLF7 = 0xd76e1c70,
+    CTRLF8 = 0xd76e5c70,
+    CTRLF9 = 0xd76c1cf0,
+    CTRLF10 = 0xd76c5cf0,
+    CTRLF11 = 0xd76cdcf0,
+    CTRLF12 = 0xd76d1cf0,
+
+    CTRLINS = 0xe6aed900,
+    CTRLDEL = 0xe6aed980,
+    CTRLHOME = 0xc6aed880,
+    CTRLEND = 0xe6aed880,
+    CTRLPGUP = 0xe6aeda80,
+    CTRLPGDW = 0xe6aedb00,
+
+    CTRLLEFT = 0xc6aed880,
+    CTRLUP = 0xd6aed880,
+    CTRLDOWN = 0xe6aed880,
+    CTRLRIGHT = 0xf6aed880,
+
+    SHIFTLEFT = 0xc64ed880,
+    SHIFTUP = 0xd64ed880,
+    SHIFTDOWN = 0xe64ed880,
+    SHIFTRIGHT = 0xf64ed880,
+
+    CTRLSHIFTLEFT = 0xc6ced880,
+    CTRLSHIFTUP = 0xd6ced880,
+    CTRLSHIFTDOWN = 0xe6ced880,
+    CTRLSHIFTRIGHT = 0xf6ced880,
+
+    ALTF1 = 0xc66ed880,
+    ALTF2 = 0xd66ed880,
+    ALTF3 = 0xe66ed880,
+    ALTF4 = 0xf66ed880,
+    ALTF5 = 0xf76d5c70,
+    ALTF6 = 0xf76ddc70,
+    ALTF7 = 0xf76e1c70,
+    ALTF8 = 0xf76e5c70,
+    ALTF9 = 0xf76c1cf0,
+    ALTF10 = 0xf76c5cf0,
+    ALTF11 = 0xf76cdcf0,
+    ALTF12 = 0xf76d1cf0,
+
+    CTRLALTF1 = 0xc6eed880,
+    CTRLALTF2 = 0xd6eed880,
+    CTRLALTF3 = 0xe6eed880,
+    CTRLALTF4 = 0xf6eed880,
+    CTRLALTF5 = 0xf76d5c70,
+    CTRLALTF6 = 0xf76ddc70,
+    CTRLALTF7 = 0xf76e1c70,
+    CTRLALTF8 = 0xf76e5c70,
+    CTRLALTF9 = 0xf76c1cf0,
+    CTRLALTF10 = 0xf76c5cf0,
+    CTRLALTF11 = 0xf76cdcf0,
+    CTRLALTF12 = 0xf76d1cf0,
+
+    CTRLSHIFTF1 = 0xc6ced880,
+    CTRLSHIFTF2 = 0xd6ced880,
+    CTRLSHIFTF3 = 0xe6ced880,
+    CTRLSHIFTF4 = 0xf6ced880,
+    CTRLSHIFTF5 = 0xf76d5c70,
+    CTRLSHIFTF6 = 0xf76ddc70,
+    CTRLSHIFTF7 = 0xf76e1c70,
+    CTRLSHIFTF8 = 0xf76e5c70,
+    CTRLSHIFTF9 = 0xf76c1cf0,
+    CTRLSHIFTF10 = 0xf76c5cf0,
+    CTRLSHIFTF11 = 0xf76cdcf0,
+    CTRLSHIFTF12 = 0xf76d1cf0,
+
+    ALTINS = 0xe66ed900,
+    ALTHOME = 0xc66ed880,
+    ALTPGUP = 0xe66eda80,
+    ALTDEL = 0xe66ed980,
+    ALTEND = 0xe66ed880,
+    ALTPGDW = 0xe66edb00,
+
+    ALTA = 0xa0184d80,
+    ALTB = 0xa0188d80,
+    ALTC = 0xa018cd80,
+    ALTD = 0xa0190d80,
+    ALTE = 0xa0194d80,
+    ALTF = 0xa0198d80,
+    ALTG = 0xa019cd80,
+    ALTH = 0xa01a0d80,
+    ALTI = 0xa01a4d80,
+    ALTJ = 0xa01a8d80,
+    ALTK = 0xa01acd80,
+    ALTL = 0xa01b0d80,
+    ALTM = 0xa01b4d80,
+    ALTN = 0xa01b8d80,
+    ALTO = 0xa01bcd80,
+    ALTP = 0xa01c0d80,
+    ALTQ = 0xa01c4d80,
+    ALTR = 0xa01c8d80,
+    ALTS = 0xa01ccd80,
+    ALTT = 0xa01d0d80,
+    ALTU = 0xa01d4d80,
+    ALTV = 0xa01d8d80,
+    ALTW = 0xa01dcd80,
+    ALTX = 0xa01e0d80,
+    ALTY = 0xa01e4d80,
+    ALTZ = 0xa01e8d80,
+
+    CTRLALTA = 0xa0004d80,
+    CTRLALTB = 0xa0008d80,
+    CTRLALTC = 0xa000cd80,
+    CTRLALTD = 0xa0010d80,
+    CTRLALTE = 0xa0014d80,
+    CTRLALTF = 0xa0018d80,
+    CTRLALTG = 0xa001cd80,
+    CTRLALTH = 0xa0020d80,
+    CTRLALTI = 0xa0024d80,
+    CTRLALTJ = 0xa0028d80,
+    CTRLALTK = 0xa002cd80,
+    CTRLALTL = 0xa0030d80,
+    CTRLALTM = 0xa0034d80,
+    CTRLALTN = 0xa0038d80,
+    CTRLALTO = 0xa003cd80,
+    CTRLALTP = 0xa0040d80,
+    CTRLALTQ = 0xa0044d80,
+    CTRLALTR = 0xa0048d80,
+    CTRLALTT = 0xa004cd80,
+    CTRLALTS = 0xa0050d80,
+    CTRLALTU = 0xa0054d80,
+    CTRLALTV = 0xa0058d80,
+    CTRLALTW = 0xa005cd80,
+    CTRLALTX = 0xa0060d80,
+    CTRLALTY = 0xa0064d80,
+    CTRLALTZ = 0xa0068d80,
+
 };
 #endif
+
+typedef struct file_t
+{
+    char *extensions; // Used separator is '|' because for some reason I couldn't get a 2D array working
+    char *display_name;
+    size_t extcount;
+} file_t;
+
+static file_t FileLang[] = {
+    {"adb|ads", "Ada", 2},                                                       // Ada
+    {"awk", "AWK script", 1},                                                    // AWK script
+    {"bas", "BASIC", 1},                                                         // BASIC
+    {"bat|cmd|btm", "Batch", 3},                                                 // Batch file
+    {"bin|exe|dll|sys|ocx|elf|out", "Binary file", 7},                           // Binary file
+    {"c|h|inl", "C", 3},                                                         // C
+    {"clj|cljs|cljc|edn", "Clojure", 4},                                         // Clojure
+    {"config|conf|ini|cfg|cnf|cf", "Configuration file", 6},                     // Configuration files
+    {"cpp|hpp|cxx|hxx|c++|h++|cc|hh", "C++", 8},                                 // C++ file
+    {"cs|csx", "C#", 2},                                                         // C#
+    {"css", "CSS style", 1},                                                     // CSS file
+    {"csv", "CSV file", 1},                                                      // CSV file
+    {"dart", "Dart", 1},                                                         // Dart
+    {"docx|docm|pptx|pptm|xlsx|xlsm", "Microsoft Office XML", 6},                // Microsoft Office XML
+    {"e", "Eiffel", 1},                                                          // Eiffel
+    {"el|elc|eln", "Emacs Lisp", 3},                                             // Emacs lisp
+    {"elm", "Elm", 1},                                                           // ELM
+    {"erl|hrl", "Erlang", 2},                                                    // Erlang                                                     
+    {"ex|exs", "Elixir", 2},                                                     // Elixir
+    {"fs|fsi|fsx|fsscript", "F#", 4},                                            // F#
+    {"git", "Git", 1},                                                           // Git (not sure if this is an actual file extension)
+    {"go", "Golang", 1},                                                         // Golang
+    {"hs|lhs", "Haskell", 1},                                                    // Haskell
+    {"html|htm", "HTML file", 2},                                                // HTML
+    {"java|class|jar|jmod", "Java", 4},                                          // Java
+    {"jl", "Julia", 1},                                                          // Julia
+    {"js|cjs|mjs", "JavaScript", 3},                                             // JavaScript
+    {"json", "JSON file", 1},                                                    // JSON file
+    {"lua", "Lua", 1},                                                           // Lua
+    {"m|p|mex|mat|fig|mlx|mlapp|mltbx|mlappinstall|mlpkginstall", "MATLAB", 10}, // MATLAB
+    {"md|markdown", "Markdown", 2},                                              // Markdown
+    {"ml|mli", "OCaml", 2},                                                      // OCaml
+    {"nb|wl", "Wolfram Language", 2},                                            // Wolfram Language (Mathematica)
+    {"newtrodit|nwtrd", "Newtrodit script", 2},                                  // Newtrodit script
+    {"nwtrd-syntax", "Newtrodit syntax rules", 1},                               // Newtrodit syntax highlighting
+    {"odt|fodt|ods|fods|odp|fodp|odg|fodg|odf", "OpenDocument file", 9},         // OpenDocument
+    {"pas|pp|inc", "Pascal", 3},                                                 // Pascal
+    {"pdf", "Portable Document Format", 1},                                      // Portable Document Format
+    {"php|phar|phtml|pht|phps", "PHP", 5},                                       // PHP
+    {"pl|plx|pm|xs|t|pod|cgi", "Perl", 7},                                       // Perl
+    {"ps1|psd1|psm1|ps1xml|pssc|psrc|cdxml", "PowerShell", 7},                   // PowerShell script
+    {"py|pyi|pyc|pyd|pyo|pyw|pyz", "Python", 7},                                 // Python
+    {"rb", "Ruby", 1},                                                           // Ruby
+    {"rs|rlib", "Rust", 2},                                                      // Rust
+    {"rtf", "Rich Text Format", 1},                                              // Rich Text Format
+    {"s|asm|arm", "Assembly", 3},                                                // Assembly
+    {"scala|sc", "Scala", 2},                                                    // Scala
+    {"scm|ss", "Scheme", 2},                                                     // Scheme
+    {"sd7|s7i", "Seed7", 2},                                                     // Seed7
+    {"sh|bashrc", "Shell script", 1},                                            // Shell script
+    {"sml", "Standard ML", 1},                                                   // Standard ML
+    {"svg|svgz", "SVG", 2},                                                      // SVG
+    {"tcl|tbc", "Tcl", 2},                                                       // Tcl
+    {"tex", "LaTeX", 1},                                                         // LaTeX
+    {"ts|tsx", "TypeScript", 2},                                                 // TypeScript
+    {"txt|text", "Text file", 2},                                                // Text file
+    {"vbs|vbe|wsf|wsc|hta|asp", "VBScript", 6},                                  // VBScript
+    {"vim|vimrc", "Vim script", 2},                                              // Vim script
+    {"vue", "Vue", 1},                                                           // Vue
+    {"xhtml|xhtm|xht", "XHTML", 2},                                              // XHTML
+    {"xml", "XML", 1},                                                           // XML
+    {"yml|yaml", "YAML", 2},                                                     // YAML
+};

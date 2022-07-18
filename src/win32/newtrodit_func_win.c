@@ -184,6 +184,7 @@ int WriteBuffer(FILE *fstream, File_info *tstack)
 int DisplayFileContent(File_info *tstack, FILE *fstream, int starty)
 {
 	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
+	SetWrapSize();
 	if (lineCount)
 	{
 		LoadLineCount(tstack, tstack->ypos, starty);
@@ -829,11 +830,11 @@ signed long long FileCompare(char *file1, char *file2) // Compare files up to 8 
 		// Convert errno to negative number
 		if (!f1)
 		{
-			return (signed long long)(abs(errno) * -1) - 1;
+			return (signed long long)(-abs(errno)) - 1;
 		}
 		else
 		{
-			return (signed long long)(abs(errno) * -1) - 256;
+			return (signed long long)(-abs(errno)) - 256;
 		}
 	}
 
@@ -1065,7 +1066,6 @@ void ErrorExit(char *s)
 	return;
 }
 
-
 int GetNewtroditInput(File_info *tstack)
 {
 	HANDLE hStdin, hStdout;
@@ -1073,6 +1073,9 @@ int GetNewtroditInput(File_info *tstack)
 	DWORD cNumRead, fdwMode, i;
 	INPUT_RECORD irInBuffer[128];
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+	BYTE vkbuf[256] = {0};
+	int virtual_key;
 
 	COORD oldSize = {0}, newSize = {0};
 	// Get the standard input handle.
@@ -1091,6 +1094,7 @@ int GetNewtroditInput(File_info *tstack)
 
 	while (1)
 	{
+
 		if (allowAutomaticResizing)
 		{
 			oldSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
@@ -1105,14 +1109,49 @@ int GetNewtroditInput(File_info *tstack)
 		}
 		for (int i = 0; i < cNumRead; i++)
 		{
-			if (irInBuffer[i].EventType == KEY_EVENT && irInBuffer->Event.KeyEvent.bKeyDown) // Must have pressed the key, not released
+			if (irInBuffer[i].EventType == KEY_EVENT) // Must have pressed the key, not released
 			{
-				return getch();
+
+				if (partialMouseSupport)
+				{
+					WriteLogFile(join(join(itoa_n(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode), "\t"), "x"));
+					if (!(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_SHIFT || irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_MENU || irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_CONTROL) && GetAsyncKeyState(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode) != 0) // Key pressed
+					{
+						return getch_n();
+					}
+					/* if (GetKeyboardState(vkbuf))
+					{
+						for (int j = 0; j < 256; j++)
+						{
+							if (vkbuf[j] != 0 && irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == j)
+							{
+								return getch();
+							}
+						}
+					} */
+					/* if (irInBuffer[i].Event.KeyEvent.wRepeatCount && GetKeyState(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode))
+					{
+						//printf("[%d]", irInBuffer[i].Event.KeyEvent.wVirtualKeyCode);
+						WriteLogFile("1");
+						return getch();
+					}
+					else
+					{
+						// printf("0");
+						WriteLogFile("0");
+					} */
+				}
+				else
+
+				{
+					return getch_n();
+				}
 			}
 			if (irInBuffer[i].EventType == FOCUS_EVENT)
 			{
 				// Ignore window focus events.
 			}
+
 			if (irInBuffer[i].EventType == WINDOW_BUFFER_SIZE_EVENT)
 			{
 				if (allowAutomaticResizing)
@@ -1228,4 +1267,33 @@ int GetNewtroditInput(File_info *tstack)
 	}
 
 	return 0;
+}
+
+char *extension_filetype(char *filename)
+{
+	char *extension = "File";
+	char *ptr;
+	if (!strpbrk(filename, "."))
+	{
+		return extension;
+	}
+	extension = StrLastTok(Tab_stack[file_index].filename, ".");
+	for (int i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
+	{
+		for (size_t k = 0; k < FileLang[i].extcount; k++)
+		{
+
+			ptr = strtok(FileLang[i].extensions, "|");
+			while (ptr != NULL)
+			{
+				if (!strcmp(extension, ptr))
+				{
+					return FileLang[i].display_name;
+				}
+				ptr = strtok(NULL, "|");
+			}
+			
+		}
+	}
+	return (char *)"Unknown file type";
 }

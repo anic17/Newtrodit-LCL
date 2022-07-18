@@ -57,6 +57,7 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 {
 	if (lineCount)
 	{
+
 		while (strlen(itoa_n(disp)) > (lineCount ? (tstack->linecount_wide) : 0))
 		{
 			(tstack->linecount_wide)++;
@@ -70,7 +71,6 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 		SetColor(0x80);
 		ClearPartial(0, disp, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
 
-		// Color current line's line number
 		printf("%d", tstack->ypos);
 
 		SetColor(bg_color);
@@ -236,6 +236,25 @@ int ValidString(char *str)
 		}
 	}
 	return 1;
+}
+
+void SetDisplayCursorPos(File_info *tstack)
+{
+	if (tstack->xpos <= wrapSize)
+	{
+		if (tstack->xpos > YSIZE - 1)
+		{
+			gotoxy(tstack->xpos + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y); // Relative position is for tab key
+		}
+		else
+		{
+			gotoxy(tstack->xpos + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y);
+		}
+	}
+	else
+	{
+		gotoxy(wrapSize + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y);
+	}
 }
 
 int SaveFile(File_info *tstack)
@@ -516,8 +535,6 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 
 	return 1;
 }
-
-void SetDisplayCursorPos(File_info *tstack);
 
 int NewFile(File_info *tstack) // ^N = New file
 {
@@ -980,24 +997,6 @@ int GetYFromTopMostLine(File_info *tstack)
 	return y;
 }
 
-void SetDisplayCursorPos(File_info *tstack)
-{
-	if (tstack->xpos <= wrapSize)
-	{
-		if (tstack->xpos > YSIZE - 1)
-		{
-			gotoxy(tstack->xpos + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y); // Relative position is for tab key
-		}
-		else
-		{
-			gotoxy(tstack->xpos + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y);
-		}
-	}
-	else
-	{
-		gotoxy(wrapSize + (lineCount ? (tstack->linecount_wide) : 0), tstack->display_y);
-	}
-}
 /* void ResizeEventProc() // WARNING: This function doesn't work properly due to multithreading issues
 {
 	DWORD cNumRead, fdwMode, i, counter, fdwSaveOldMode;
@@ -1151,4 +1150,33 @@ int GetNewtroditInput(File_info *tstack)
 {
 	int keycode = getch();
 	return keycode;
+}
+
+char *extension_filetype(char *filename)
+{
+	char *extension = "File";
+	char *ptr;
+	if (!strpbrk(filename, "."))
+	{
+		return extension;
+	}
+	extension = StrLastTok(Tab_stack[file_index].filename, ".");
+	for (int i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
+	{
+		for (size_t k = 0; k < FileLang[i].extcount; k++)
+		{
+
+			ptr = strtok(FileLang[i].extensions, "|");
+			while (ptr != NULL)
+			{
+				if (!strcmp(extension, ptr))
+				{
+					return FileLang[i].display_name;
+				}
+				ptr = strtok(NULL, "|");
+			}
+			
+		}
+	}
+	return (char *)"Unknown file type";
 }
