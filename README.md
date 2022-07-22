@@ -41,8 +41,7 @@ Newtrodit doesn't need any special requirements for Windows. It can run on Windo
 
 When running Newtrodit on linux you require any semi-modern terminal emulator, and a shell supporting VT520 or DECSCUSR sequences. For some features, you also require a POSIX compilent system (which most linux distro's are). 
 
-A list of tested Linux terminals on the three most popular shells can be found below
-###### NOTE: when Newtrodit actully works on Linux I'll fill this out 
+A list of tested Linux terminals on the three most popular shells can be found below 
 | _Tested terminals_ | **BASH 5.1** | **ZSH 5.8** | **FISH 3.1** |
 |--------------------|:------------:|:-----------:|:------------:|
 | GNOME Terminal     |       x      |      x      |       x      |
