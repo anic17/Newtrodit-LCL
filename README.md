@@ -44,13 +44,13 @@ When running Newtrodit on linux you require any semi-modern terminal emulator, a
 A list of tested Linux terminals on the three most popular shells can be found below 
 | _Tested terminals_ | **BASH 5.1** | **ZSH 5.8** | **FISH 3.1** |
 |--------------------|:------------:|:-----------:|:------------:|
-| GNOME Terminal     |       x      |      x      |       x      |
-| Terminator         |       x      |      x      |       x      |
-| Konsole            |       x      |      x      |       x      |
-| Guake              |       x      |      x      |       x      |
-| XTERM              |       x      |      x      |       x      |
-| RXVT               |       x      |      x      |       x      |
-| Alacritty          |       x      |      x      |       x      |
+| GNOME Terminal     |       ✓      |      ✓      |       ✓      |
+| Terminator         |       ✓      |      ✓      |       ✓      |
+| Konsole            |       ✓      |      ✓      |       ✓      |
+| Guake              |       ✓      |      ✓      |       ✓      |
+| XTERM              |       ✓      |      ✓      |       ✓      |
+| RXVT               |       ✓      |      ✓      |       ✓      |
+| Alacritty          |       ✓      |      ✓      |       ✓      |
 
 *If your Terminal emulator wasn't listed don't worry*. Any terminal using the following backends are supported: xterm-color, xterm-16color, and xterm-256color. Other backends that fall under the XTerm specifications are: putty, konsole, Eterm, rxvt, gnome. 
 
