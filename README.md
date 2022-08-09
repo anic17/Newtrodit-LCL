@@ -30,7 +30,7 @@ As I was quite new to C, creating Newtrodit was a challenge to see how good I co
    - Uppercase/lowercase conversion
 - Fully configurable syntax highlighting including custom rules
 - Built-in manual
-- Mouse support
+- Mouse support (Windows exclusive)
 - Can edit files up to 5600 lines
 - Some file utilities:
    - File compare
@@ -39,7 +39,7 @@ As I was quite new to C, creating Newtrodit was a challenge to see how good I co
 # Requirements
 Newtrodit doesn't need any special requirements for Windows. It can run on Windows versions starting from Windows XP to Windows 11. 
 
-When running Newtrodit on linux you require any semi-modern terminal emulator, and a shell supporting VT520 or DECSCUSR sequences. For some features, you also require a POSIX compilent system (which most linux distro's are). 
+When running Newtrodit on linux you must have any semi-modern terminal emulator, along with a shell that supports VT520, and DECSCUSR sequences. For some features, you also require a POSIX compilent system (which most linux distro's are). 
 
 A list of tested Linux terminals on the three most popular shells can be found below 
 | _Tested terminals_ | **BASH 5.1** | **ZSH 5.8** | **FISH 3.1** |
@@ -77,15 +77,20 @@ Don't forget to give the project a star! Thanks again!
 # Contact
 
 You can join the Program Dream Discord server here and talk about everything related to Newtrodit.</br>
-<a href="https://discord.gg/J628dBqQgb"><img src="https://img.shields.io/discord/728958932210679869?style=flat-square&logo=appveyor"></a>
+<a href="https://discord.gg/J628dBqQgb"><img src="https://img.shields.io/discord/728958932210679869?style=flat-square"></a>
 <hr>
 
 ## Credits
 Thanks to all the contributers who helped make Newtrodit possible! ❤️
 
-* [anic17](https://github.com/anic17) — Creator of Newtrodit, main developer
-* [ZackeryRSmith](https://github.com/ZackeryRSmith) — Creator of Newtrodit-LCL, helped a lot on the development
-* [timlg07](https://github.com/timlg07) — Bug fixes
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/anic17"><img src="https://avatars.githubusercontent.com/u/58483910?v=4?s=100" width="100px;" /><br /><sub><b>anic17</b></sub></a><br /><a href="" title="Maintainer">:hammer:</a> <a href="" title="Code">:computer:</a></td>
+    <td align="center"><a href="https://github.com/ZackeryRSmith"><img src="https://avatars.githubusercontent.com/u/72983221?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ZackeryRSmith</b></sub></a><br /><a href="" title="Maintainer">:hammer:</a> <a href="" title="Code">:computer:</a></td>
+    <td align="center"><a href="https://github.com/timlg07"><img src="https://avatars.githubusercontent.com/u/33633786?v=4?s=100" width="100px;" /><br /><sub><b>timlg07</b></sub></a><br /><a href="" title="Bug fixes">:bug:</a></td>
+  </tr>
+</table>
+
 <hr>
 
 ###### Copyright &copy; 2021-2022 anic17 Software
