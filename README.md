@@ -88,7 +88,7 @@ Thanks to all the contributers who helped make Newtrodit possible! ❤️
     <td align="center"><a href="https://github.com/anic17"><img src="https://avatars.githubusercontent.com/u/58483910?v=4?s=100" width="100px;" /><br /><sub><b>anic17</b></sub></a><br /><a href="" title="Maintainer">:hammer:</a> <a href="" title="Code">:computer:</a></td>
     <td align="center"><a href="https://github.com/ZackeryRSmith"><img src="https://avatars.githubusercontent.com/u/72983221?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ZackeryRSmith</b></sub></a><br /><a href="" title="Maintainer">:hammer:</a> <a href="" title="Code">:computer:</a></td>
     <td align="center"><a href="https://github.com/timlg07"><img src="https://avatars.githubusercontent.com/u/33633786?v=4?s=100" width="100px;" /><br /><sub><b>timlg07</b></sub></a><br /><a href="" title="Bug fixes">:bug:</a></td>
-    <td align="center"><a href="https://github.com/cookiegamer733"><img src="https://avatars.githubusercontent.com/u/74946768?v=4?s=100" width="100px;" /><br /><sub><b>cookiegamer733</b></sub></a><br /><a href="" title="Bug fixes">:bug:</a></td>
+    <td align="center"><a href="https://github.com/CookieGamer733"><img src="https://avatars.githubusercontent.com/u/74946768?v=4?s=100" width="100px;" /><br /><sub><b>CookieGamer733</b></sub></a><br /><a href="" title="Bug fixes">:bug:</a></td>
   </tr>
 </table>
 
