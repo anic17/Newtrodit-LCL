@@ -39,7 +39,7 @@ Like any other programmer that has no motivation I started browsing Github. I re
 # Requirements
 Newtrodit doesn't need any special requirements for Windows. It can run on Windows versions starting from Windows XP to Windows 11. 
 
-When running Newtrodit on Linux you must have any semi-modern terminal emulator, along with a shell that supports VT520, and DECSCUSR sequences. For some features, you also require a POSIX compilent system (which most Linux distro's are). 
+When running Newtrodit on Linux you must have any semi-modern terminal emulator, along with a shell that supports VT520, and DECSCUSR sequences. For some features, you need a POSIX compilent system (which most Linux distro's are). 
 
 A list of tested Linux terminals on the three most popular shells can be found below 
 | _Tested terminals_ | **BASH 5.1** | **ZSH 5.8** | **FISH 3.1** |
@@ -56,7 +56,7 @@ A list of tested Linux terminals on the three most popular shells can be found b
 
 Screen mode isn't fully supported and you may find features missing, and if you are using a dumb terminal Newtrodit will fail to run.
 
-If you don't know what any of that stuff means, you don't have to worry about it. Newtrodit should run just fine on your terminal.
+If you don't know what any of that means, you don't have to worry about it. Newtrodit should run just fine on your terminal.
 
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
