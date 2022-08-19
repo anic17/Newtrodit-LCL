@@ -14,7 +14,7 @@ Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_dark.png" width="521" height="300">
 
 ## Motives
-&emsp;I was browing Github like I typicly would. I then found a repo called Newtrodit. As a huge fan of terminal text editors I immediately stared the repo. A month or so later, I ended up out of ideas, and drained of programming. 
+&emsp;I was browsing GitHub like I typicly would. I then found a repo called Newtrodit. As a huge fan of terminal text editors I immediately stared the repo. A month or so later, I ended up out of ideas, and drained of programming. 
 
 Like any other programmer that has no motivation I started browsing Github. I refound the Newtrodit repo, and I had an idea: "It should be possible to make this run on Linux" come to today, where Newtordit now runs on Linux. This is highly due to the support from the creator [anic17](https://github.com/anic17) without his help LCL wouldn't exist.
 
