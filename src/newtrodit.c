@@ -84,7 +84,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
     }
 
     char setting_buf[1024]; // Max 1 kB per line
-    char *iniptr = (char *)malloc(sizeof(setting_buf) + 1), *token = (char *)malloc(sizeof(setting_buf) + 1);
+    char *iniptr = malloc(sizeof(setting_buf) + 1), *token = malloc(sizeof(setting_buf) + 1);
     int cnt = 0;
     int parse_hex;
     char equalchar[] = "=";
@@ -103,7 +103,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
         "menucolor",
         "mouse",
         "newline",
-        "oldkeybinds",
+        "oldkeybindings",
         "sigsegv",
         "syntax",
         "tabwide",
@@ -157,14 +157,7 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     }
                     if (!strcmp(setting_list[i], "convertnull"))
                     {
-                        if (atoi(token))
-                        {
-                            convertNull = true;
-                        }
-                        else
-                        {
-                            convertNull = false;
-                        }
+                        atoi(token) ? (convertNull = true) : (convertNull = false);
                     }
                     if (!strcmp(setting_list[i], "converttab"))
                     {
@@ -181,14 +174,8 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
 
                     if (!strcmp(setting_list[i], "curinsert"))
                     {
-                        if (atoi(token))
-                        {
-                            cursorSizeInsert = true;
-                        }
-                        else
-                        {
-                            cursorSizeInsert = false;
-                        }
+
+                        atoi(token) ? (cursorSizeInsert = true) : (cursorSizeInsert = false);
                     }
 
                     if (!strcmp(setting_list[i], "cursize"))
@@ -208,6 +195,10 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
                     if (!strcmp(setting_list[i], "linecountwide"))
                     {
                         LINECOUNT_WIDE = abs(atoi(token)) % sizeof(long long);
+                    }
+                    if (!strcmp(setting_list[i], "linehighlight"))
+                    {
+                        atoi(token) ? (linecountHighlightLine = true) : (linecountHighlightLine = false);
                     }
                     if (!strcmp(setting_list[i], "macro"))
                     {
@@ -238,19 +229,20 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
 
                     if (!strcmp(setting_list[i], "newline"))
                     {
-                        if (token != NULL)
+
+                        if (!strncmp(token, "0x", 2))
                         {
-                            if (!strncmp(token, "0x", 2))
-                            {
-                                ParseHexString(token);
-                            }
+                            ParseHexString(token);
+                        }
+                        else
+                        {
                             strncpy_n(Tab_stack[file_index].newline, token, strlen(Tab_stack[file_index].newline));
                         }
                     }
 
-                    if (!strcmp(setting_list[i], "oldkeybinds"))
+                    if (!strcmp(setting_list[i], "oldkeybindings"))
                     {
-                        atoi(token) ? (useOldKeybinds = true) : (useOldKeybinds = false);
+                        atoi(token) ? (useOldKeybindings = true) : (useOldKeybindings = false);
                     }
                     if (!strcmp(setting_list[i], "sigsegv"))
                     {
@@ -325,15 +317,9 @@ int LoadSettings(char *newtrodit_config_file, char *macro, int *sigsegv, int *li
 
 int main(int argc, char *argv[])
 {
-// LINUX: Buffers do not work as expected
-#if _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER == 1 && !_NEWTRODIT_OLD_SUPPORT
-#ifndef _WIN32
-    EnterAltConsoleBuffer();
-#endif
-#endif
+    // Newtrodit initialization begins
 
-    // Startup routine code Newtrodit must always execute
-    char *startup_info = (char *)malloc(sizeof(char) * MAX_PATH * 2); // *2 for safety
+    char *startup_info = malloc(sizeof(char) * MAX_PATH * 2); // *2 for safety
     memset(startup_info, 0, sizeof(char) * MAX_PATH * 2);
 #ifdef _WIN32
     GetModuleFileNameA(NULL, startup_info, MAX_PATH);
@@ -341,22 +327,31 @@ int main(int argc, char *argv[])
     startup_info = argv[0]; // Program name
 #endif
     // Generate log file name
-    SInf.log_file_name = (char *)calloc(MAX_PATH, sizeof(char));
+    SInf.log_file_name = calloc(MAX_PATH, sizeof(char));
     SInf.log_file_name = strdup(GetLogFileName());
     WriteLogFile("\nNewtrodit started");
+    WriteLogFile(join("Logfile created with name: ", SInf.log_file_name));
+    
+
+// LINUX: Buffers do not work as expected
+#if _NEWTRODIT_EXPERIMENTAL_RESTORE_BUFFER == 1 && !_NEWTRODIT_OLD_SUPPORT
+#ifndef _WIN32
+    EnterAltConsoleBuffer();
+#endif
+#endif
 
 #ifdef _WIN32
     HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE), hStdin = GetStdHandle(STD_INPUT_HANDLE);
 
-    GetConsoleMode(hStdout, &dwConsoleMode);
+    GetConsoleMode(hStdout, &dwStdoutMode);
     GetConsoleMode(hStdin, &dwStdinMode);
     // Disable wrapping to avoid (or at least reduce) graphical bugs
-    WriteLogFile(join("Changing console output mode: ", (SetConsoleMode(hStdout, dwConsoleMode & ~ENABLE_WRAP_AT_EOL_OUTPUT)) ? "Succeeded" : "Failed"));
-    WriteLogFile(join("Changing console input mode: ", (SetConsoleMode(hStdin, dwConsoleMode | ENABLE_MOUSE_INPUT | 0x80 | ENABLE_ECHO_INPUT)) ? "Succeeded" : "Failed"));
+    WriteLogFile(join("Changing console output mode: ", (SetConsoleMode(hStdout, dwStdoutMode & ~ENABLE_WRAP_AT_EOL_OUTPUT)) ? "Succeeded" : "Failed"));
+    WriteLogFile(join("Changing console input mode: ", (SetConsoleMode(hStdin, ENABLE_MOUSE_INPUT | 0x80 | ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT )) ? "Succeeded" : "Failed")); // 0x40 is quick edit mode and 0x80 are extended flags
 
     WriteLogFile("Loading startup data");
 #endif
-    char *sinf_ptr = (char *)malloc(sizeof(char) * MAX_PATH * 2);
+    char *sinf_ptr = malloc(sizeof(char) * MAX_PATH * 2);
     if (get_path_directory(startup_info, sinf_ptr) != NULL)
     {
         SInf.dir = strdup(getcwd(NULL, 0));
@@ -365,9 +360,9 @@ int main(int argc, char *argv[])
     }
     else
     {
-
         memset(SInf.location, 0, sizeof(char) * MAX_PATH * 2);
     }
+    free(sinf_ptr);
 
     // Get file date times
 #ifdef _WIN32
@@ -406,12 +401,12 @@ int main(int argc, char *argv[])
     int listDir = true;
     int isFullScreen = false;
 
-    /*     char *run_macro = (char *)malloc(sizeof(char) * MAX_PATH + 1);
+    /*     char *run_macro = malloc(sizeof(char) * MAX_PATH + 1);
      */
 
     for (int i = 0; i < MAX_TABS; i++)
     {
-        Tab_stack[i].filename = (char *)calloc(MAX_PATH, sizeof(char));
+        Tab_stack[i].filename = calloc(MAX_PATH, sizeof(char));
     }
 
     // Allocate buffer
@@ -422,16 +417,18 @@ int main(int argc, char *argv[])
         printf("%.*s\n", wrapSize, NEWTRODIT_ERROR_OUT_OF_MEMORY);
         ExitRoutine(ENOMEM);
     }
-    old_open_files = (char **)malloc(MAX_PATH * sizeof(char *));
+    old_open_files = malloc(MAX_PATH * sizeof(char *));
 
     for (int i = 1; i < MIN_BUFSIZE; i++)
     {
-        old_open_files[i] = (char *)calloc(MAX_PATH, sizeof(char));
+        old_open_files[i] = calloc(MAX_PATH, sizeof(char));
     }
 
-    run_macro = (char *)malloc(sizeof(char) * MACRO_ALLOC_SIZE + 1);
+    run_macro = malloc(sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
+    WriteLogFile("Setting console signal handlers");
 #ifdef _WIN32
+
     signal(SIGBREAK, SIG_IGN); // Ctrl-Break handler
 #else
     signal(SIGTSTP, SIG_IGN); // Ctrl-Z handler
@@ -439,6 +436,9 @@ int main(int argc, char *argv[])
     signal(SIGINT, SIG_IGN);          // Ctrl-C handler
     signal(SIGSEGV, sigsegv_handler); // Segmentation fault handler
     signal(SIGABRT, sigabrt_handler); // Abort handler
+
+    WriteLogFile("Finished setting console signal handlers");
+
 
     memset(run_macro, 0, sizeof(char) * MACRO_ALLOC_SIZE + 1);
 
@@ -449,19 +449,20 @@ int main(int argc, char *argv[])
         signal(SIGSEGV, SIG_DFL);
     }
 
-    char *err_msg = (char *)malloc(sizeof(char) * MIN_BUFSIZE);
+    char *err_msg = malloc(sizeof(char) * MIN_BUFSIZE);
     if (BUFFER_X < MIN_BUFSIZE || BUFFER_Y < MIN_BUFSIZE)
     {
         snprintf(err_msg, MIN_BUFSIZE, "Buffer is too small (Current size is %dx%d and minimim size is %dx%d)", BUFFER_X, BUFFER_Y, MIN_BUFSIZE, MIN_BUFSIZE);
 #ifdef _WIN32
         MessageBox(NULL, err_msg, "Newtrodit", MB_ICONERROR);
 #endif
+        WriteLogFile(err_msg);
         fprintf(stderr, "%s", err_msg);
         free(err_msg);
         ExitRoutine(1);
     }
-    char *temp_strsave = (char *)malloc(BUFFER_X) + 1;
-    char *tmp = (char *)malloc(BUFFER_X) + 1;
+    char *temp_strsave = malloc(BUFFER_X) + 1;
+    char *tmp = malloc(BUFFER_X) + 1;
 
     int undo_stack_line = 0, undo_stack_tree = 0;
 
@@ -471,7 +472,7 @@ int main(int argc, char *argv[])
 
     SInf.color = GetConsoleInfo(COLOR);
 
-    char *save_dest = (char *)malloc(MAX_PATH) + 1;
+    char *save_dest = malloc(MAX_PATH) + 1;
     char *line_number_str;
 
     char find_string[512], replace_string[512];
@@ -485,7 +486,7 @@ int main(int argc, char *argv[])
     convertTabtoSpaces = true;
     int n = 0, n2 = 0;
     signed long long ll_n = 0;
-    char *ptr = (char *)calloc(sizeof(char), BUFFER_X), *buffer_clipboard;
+    char *ptr = calloc(sizeof(char), BUFFER_X), *buffer_clipboard;
 
     // File variables
     FILE *fileread, *fp_savefile, *open_argv, *syntax;
@@ -503,7 +504,6 @@ int main(int argc, char *argv[])
     file_arguments = (int *)malloc(sizeof(int *) * argc); // Allocate memory for file_arguments for each argument
     WriteLogFile("Finished loading startup data");
 
-    SetColor(bg_color);
     int shiftargc = 1; // Can't be 0, because the first argument is the program name
     WriteLogFile("Parsing command-line arguments");
 
@@ -512,14 +512,14 @@ int main(int argc, char *argv[])
         if (!strcmp(argv[arg_parse], "--version") || !strcmp(argv[arg_parse], "-v")) // Version parameter
         {
             printf("%.*s", wrapSize, ProgInfo());
-            return 0;
+            ExitRoutine(0);
         }
         else if (!strcmp(argv[arg_parse], "--help") || !strcmp(argv[arg_parse], "-h")) // Manual parameter
         {
             NewtroditHelp();
             SetColor(SInf.color);
             ClearScreen();
-            return 0;
+            ExitRoutine(0);
         }
         else if (!strcmp(argv[arg_parse], "--syntax") || !strcmp(argv[arg_parse], "-s")) // Syntax parameter
         {
@@ -542,7 +542,7 @@ int main(int argc, char *argv[])
             else
             {
                 fprintf(stderr, "%s\n", NEWTRODIT_ERROR_MISSING_ARGUMENT);
-                return 1;
+                ExitRoutine(1);
             }
         }
         else if (!strcmp(argv[arg_parse], "--line") || !strcmp(argv[arg_parse], "-l")) // Display line count
@@ -702,7 +702,7 @@ int main(int argc, char *argv[])
 
         SetDisplayY(&Tab_stack[file_index]);
 
-        if (lineCount && !isprint(ch) && c != -32) // -32 = scroll
+        if (lineCount && !isprint(ch) && c != -32 || linecountHighlightLine) // -32 = scroll
         {
             DisplayLineCount(&Tab_stack[file_index], YSIZE - 3, Tab_stack[file_index].display_y);
         }
@@ -781,7 +781,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (ch == 3 || ch == 11) // ^C = Copy line to clipboard; ^K = Cut line
+        if (ch == CTRLC || ch == CTRLK) // ^C = Copy line to clipboard; ^K = Cut line
         {
             if (!CheckKey(VK_SHIFT))
             {
@@ -797,7 +797,7 @@ int main(int argc, char *argv[])
                     SetClipboardData(CF_TEXT, hMem);
                     CloseClipboard();
 #endif
-                    if (ch == 11 && useOldKeybinds)
+                    if (ch == CTRLK && useOldKeybindings)
                     {
                         if (Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][0] != '\0')
                         {
@@ -815,15 +815,15 @@ int main(int argc, char *argv[])
             }
             else
             {
-                if (ch == 11)
+                if (ch == CTRLK)
                 {
-                    ToggleOption(&useOldKeybinds, NEWTRODIT_OLD_KEYBINDS, true);
+                    ToggleOption(&useOldKeybindings, NEWTRODIT_OLD_KEYBINDINGS, true);
 
                     c = -2;
                     ch = 0;
                     continue;
                 }
-                if (ch == 3) // S-^C = File compare
+                if (ch == CTRLC) // S-^C = File compare
                 {
                     memset(fcomp1, 0, sizeof(fcomp1));
                     memset(fcomp2, 0, sizeof(fcomp2));
@@ -891,7 +891,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (ch == 12) // S-^L = Locate files ; ^L = Toggle line count
+        if (ch == CTRLL) // S-^L = Locate files ; ^L = Toggle line count
         {
 
             if (!CheckKey(VK_SHIFT))
@@ -924,7 +924,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 7) // ^G = Go to line
+        if (ch == CTRLG) // ^G = Go to line
         {
             if (CheckKey(VK_SHIFT))
             {
@@ -983,7 +983,7 @@ int main(int argc, char *argv[])
 
             continue;
         }
-        if (ch == 14) // ^N = New file
+        if (ch == CTRLN) // ^N = New file
         {
             if (!CheckKey(VK_SHIFT))
             {
@@ -1011,9 +1011,9 @@ int main(int argc, char *argv[])
                 continue;
             }
         }
-        if (ch == 15) // ^O = Open file
+        if (ch == CTRLO) // ^O = Open file
         {
-            // if (!CheckKey(VK_SHIFT)) // Shift not pressed
+            if (!CheckKey(VK_SHIFT)) // Shift not pressed
             {
                 if (Tab_stack[file_index].is_modified)
                 {
@@ -1111,7 +1111,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (ch == 20) // S-^T = Toggle tab conversion
+        if (ch == CTRLT) // S-^T = Toggle tab conversion
         {
             /* if (CheckKey(VK_SHIFT) && dev_tools)
             {
@@ -1154,7 +1154,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (ch == 18) // ^R = Reload file and S-^R = Reload settings
+        if (ch == CTRLR) // ^R = Reload file and S-^R = Reload settings
         {
             if (CheckKey(VK_SHIFT)) // S-^R = Reload settings
             {
@@ -1205,7 +1205,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch & BIT_ESC224) // Special keys: 224
+        if (ch & BIT_ESC224) // Special keys: 224 (0xE0)
         {
 
             c = -32;
@@ -1463,7 +1463,7 @@ int main(int argc, char *argv[])
                 insertChar = !insertChar;
                 if (cursorSizeInsert)
                 {
-                    insertChar ? SetCursorSettings(true, 80) : SetCursorSettings(true, CURSIZE);
+                    insertChar ? SetCursorSettings(true, CURSIZE_INS) : SetCursorSettings(true, CURSIZE);
                 }
 
                 break;
@@ -1553,17 +1553,19 @@ int main(int argc, char *argv[])
 
             continue;
         }
-        if (ch == 13 && !CheckKey(VK_RETURN) && !_NEWTRODIT_OLD_SUPPORT) // ^M = Toggle mouse
+        if (ch == CTRLM && !CheckKey(VK_RETURN) && !_NEWTRODIT_OLD_SUPPORT) // ^M = Toggle mouse
         {
+
             if (!CheckKey(VK_SHIFT))
             {
+
                 ToggleOption(&partialMouseSupport, NEWTRODIT_MOUSE, true);
-                c = -2;
+
                 ch = 0;
                 continue;
             }
         }
-        if ((ch == 13 && CheckKey(VK_RETURN)) || (ch == 13 && _NEWTRODIT_OLD_SUPPORT)) // Newline character: CR (13)
+        if ((ch == ENTER && CheckKey(VK_RETURN)) || (ch == ENTER && _NEWTRODIT_OLD_SUPPORT)) // Newline character: CR (13)
         {
             if (Tab_stack[file_index].ypos < Tab_stack[file_index].bufy - 1)
             {
@@ -1574,7 +1576,7 @@ int main(int argc, char *argv[])
                      Tab_stack[file_index].Ustack = (Undo_stack *)realloc(Tab_stack[file_index].Ustack, sizeof(Undo_stack) * (sizeof(&Tab_stack[file_index].Ustack) + 1));
                      Tab_stack[file_index].Ustack->size = n;
 
-                     Tab_stack[file_index].Ustack->line = (char *)malloc(Tab_stack[file_index].Ustack->size);
+                     Tab_stack[file_index].Ustack->line = malloc(Tab_stack[file_index].Ustack->size);
                      memset(Tab_stack[file_index].Ustack->line, 0, Tab_stack[file_index].Ustack->size);
                      Tab_stack[file_index].Ustack->line = strdup(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]); // If it's not a duplicate, the value will change
                      Tab_stack[file_index].Ustack->line_count = Tab_stack[file_index].ypos;
@@ -1598,7 +1600,7 @@ int main(int argc, char *argv[])
 
             continue;
         }
-        if (ch == 5) // ^E = Toggle syntax highlighting / S-^E = Set syntax highlighting rules file
+        if (ch == CTRLE) // ^E = Toggle syntax highlighting / S-^E = Set syntax highlighting rules file
         {
             if (CheckKey(VK_SHIFT))
             {
@@ -1645,7 +1647,7 @@ int main(int argc, char *argv[])
             ch = 0;
             continue;
         }
-        if (ch == 6) // ^F = Find string
+        if (ch == CTRLF) // ^F = Find string
         {
 
             // Empty values
@@ -1710,11 +1712,11 @@ int main(int argc, char *argv[])
                         gotoxy(find_string_index + (lineCount ? Tab_stack[file_index].linecount_wide : 0) + strlen(find_string), Tab_stack[file_index].display_y);
 
                         c = getch_n();
-                        if (c == 27)
+                        if (c == ESC)
                         {
                             break;
                         }
-                        else if (c == 316) // F3
+                        else if (c == F3) // F3
                         {
 
                             n = 0;
@@ -1764,7 +1766,7 @@ int main(int argc, char *argv[])
         {
             switch (ch & ~(BIT_ESC0))
             {
-            case 19: // ^A-R (ROT13)
+            case CTRLALTR: // ^A-R (ROT13)
                 memset(temp_strsave, 0, BUFFER_X);
                 strncpy_n(temp_strsave, Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]));
                 if (rot13(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]))
@@ -1774,7 +1776,7 @@ int main(int argc, char *argv[])
                     print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
                 }
                 break;
-            case 22: // A-^U (Uppercase)
+            case CTRLALTU: // A-^U (Uppercase)
                 for (int i = 0; i < strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]); i++)
                 {
                     Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][i] = toupper(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][i]);
@@ -1783,7 +1785,7 @@ int main(int argc, char *argv[])
                 print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
                 break;
 
-            case 38: // A-^L (Lowercase)
+            case CTRLALTL: // A-^L (Lowercase)
                 for (int i = 0; i < strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]); i++)
                 {
                     Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][i] = tolower(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][i]);
@@ -1791,7 +1793,7 @@ int main(int argc, char *argv[])
                 gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
                 print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
                 break;
-            case 49: // A-^N (New file and save)
+            case CTRLALTN: // A-^N (New file and save)
 
                 if (CheckKey(VK_MENU))
                 {
@@ -1808,7 +1810,7 @@ int main(int argc, char *argv[])
                 }
                 break;
 
-            case 59: // F1 key
+            case F1: // F1 key
                 NewtroditHelp();
 
                 LoadAllNewtrodit();
@@ -1816,7 +1818,7 @@ int main(int argc, char *argv[])
                 DisplayFileContent(&Tab_stack[file_index], stdout, 0);
                 DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
                 break;
-            case 60: // F2 key
+            case F2: // F2 key
                 if (Tab_stack[file_index].is_untitled || !Tab_stack[file_index].is_saved)
                 {
                     SaveFile(&Tab_stack[file_index]);
@@ -1874,7 +1876,7 @@ int main(int argc, char *argv[])
                 DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
                 ch = 0;
                 break;
-            case 63: // F5 key = Run macro
+            case F5: // F5 key = Run macro
                 if (!run_macro)
                 {
                     if (!Tab_stack[file_index].is_untitled && Tab_stack[file_index].is_saved)
@@ -1910,7 +1912,7 @@ int main(int argc, char *argv[])
 
                 ch = 0;
                 break;
-            case 64: // F6 key = Insert date and time
+            case F6: // F6 key = Insert date and time
 
                 temp_strsave = GetTime(showMillisecondsInTime);
 
@@ -1943,13 +1945,13 @@ int main(int argc, char *argv[])
 
                 break;
 
-            case 67: // F9 = Compile
+            case F9: // F9 = Compile
                 StartProcess(join(join(Tab_stack[file_index].Compilerinfo.path, " "), Tab_stack[file_index].Compilerinfo.flags));
                 break;
-            case 68:                            // F10 key
+            case F10:                           // F10 key
                 StartProcess("explorer.exe ."); // Open current directory in explorer
                 break;
-            case 88: // S-F5 (Set macro)
+            case SHIFTF5: // S-F5 (Set macro)
                 PrintBottomString(NEWTRODIT_PROMPT_CREATE_MACRO);
                 fgets(macro_input, sizeof(macro_input), stdin);
                 if (NoLfLen(macro_input) <= 0)
@@ -1976,10 +1978,10 @@ int main(int argc, char *argv[])
                 ShowBottomMenu();
                 DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
                 break;
-            case 93:                     // S-F10 key
+            case SHIFTF10:               // S-F10 key
                 StartProcess("cmd.exe"); // Open command prompt
                 break;
-            case 94: // ^F1 key
+            case CTRLF1: // ^F1 key
                 SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
                 ClearPartial(0, 1, XSIZE, YSIZE - 1);
                 n = strlen(join("Contribute at ", newtrodit_repository));
@@ -1997,7 +1999,7 @@ int main(int argc, char *argv[])
                 SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 
                 break;
-            case 97: // ^F4
+            case CTRLF4: // ^F4
                 if (!CheckKey(VK_SHIFT))
                 {
 
@@ -2008,7 +2010,7 @@ int main(int argc, char *argv[])
                     break;
                 }
 
-            case 107: // A-F4 key
+            case ALTF4: // A-F4 key
                 if (!CheckKey(VK_CONTROL))
                 {
                     QuitProgram(SInf.color);
@@ -2017,6 +2019,7 @@ int main(int argc, char *argv[])
                 }
                 break;
 
+            /* This one (148) doesn't work on Linux */
             case 148: // ^TAB / S-^TAB (Switch file)
 
                 if (open_files > 1)
@@ -2110,10 +2113,10 @@ int main(int argc, char *argv[])
                                     }
                                 } */
 
-            case 151: // A-HOME key "smart home" (go to the first non-whitespace character)
+            case ALTHOME: // A-HOME key "smart home" (go to the first non-whitespace character)
                 Tab_stack[file_index].xpos = strspn(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], " \t");
                 break;
-            case 159: // A-END key "smart end" (go to the last non-whitespace character)
+            case ALTEND: // A-END key "smart end" (go to the last non-whitespace character)
                 n = NoLfLen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
 
                 while ((Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][n - 1] == ' ' || Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][n - 1] == '\t') && Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][n - 1] != '\0')
@@ -2134,7 +2137,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 19) // ^S
+        if (ch == CTRLS) // ^S
         {
             (CheckKey(VK_SHIFT)) ? (n = 2) : (n = 0);
             memset(save_dest, 0, MAX_PATH);
@@ -2220,7 +2223,7 @@ int main(int argc, char *argv[])
             ch = 0;
             continue;
         }
-        if (ch == 22) // ^V
+        if (ch == CTRLV) // ^V
         {
 #ifdef _WIN32
             if (OpenClipboard(0))
@@ -2231,7 +2234,7 @@ int main(int argc, char *argv[])
                     n = 0;
                     // Split the string with the newline character as delimiter and print them separately
                     ptr = strtok(buffer_clipboard, "\n");
-                    tmp = (char *)calloc(strlen(ptr) + 1, sizeof(char)); // Allocate memory and initialize all bytes to 0
+                    tmp = calloc(strlen(ptr) + 1, sizeof(char)); // Allocate memory and initialize all bytes to 0
                     while (ptr != NULL)
                     {
                         for (int i = 0; i < strlen(ptr); i++) // i is also character 9 :)
@@ -2260,7 +2263,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 4) // ^D (Debug tool/dev mode) / S-^D = Toggle dev mode
+        if (ch == CTRLD) // ^D (Debug tool/dev mode) / S-^D = Toggle dev mode
         {
             ch = 0;
             if (CheckKey(VK_SHIFT))
@@ -2279,7 +2282,7 @@ int main(int argc, char *argv[])
                 print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
             }
         }
-        if (ch == 23) // ^W
+        if (ch == CTRLW) // ^W
         {
             if (!CheckKey(VK_SHIFT))
             {
@@ -2294,24 +2297,18 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (ch == 17) // ^Q = Quit program
+        if (ch == CTRLQ) // ^Q = Quit program
         {
 
-#ifdef _WIN32
-            if (!CheckKey(VK_SHIFT))
-#endif
-            {
-                QuitProgram(SInf.color);
-
-                ShowBottomMenu();
-                SetColor(bg_color);
-                ch = 0;
-                continue;
-            }
+            QuitProgram(SInf.color);
+            ShowBottomMenu();
+            SetColor(bg_color);
+            ch = 0;
+            continue;
         }
-        if (ch == 24) // ^X = Cut
+        if (ch == CTRLX) // ^X = Cut
         {
-            if (useOldKeybinds)
+            if (useOldKeybindings)
             {
                 if (!CheckKey(VK_SHIFT))
                 {
@@ -2329,7 +2326,7 @@ int main(int argc, char *argv[])
                     {
 
                         Tab_stack[file_index].Ustack->size = strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
-                        Tab_stack[file_index].Ustack->line = (char *)malloc(sizeof(char) * (Tab_stack[file_index].Ustack->size + 1));
+                        Tab_stack[file_index].Ustack->line = malloc(sizeof(char) * (Tab_stack[file_index].Ustack->size + 1));
                         memset(Tab_stack[file_index].Ustack->line, 0, Tab_stack[file_index].Ustack->size);
 
                         Tab_stack[file_index].Ustack->line = strdup(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
@@ -2363,7 +2360,7 @@ int main(int argc, char *argv[])
             if (Tab_stack[file_index].xpos > 0)
             {
                 /*  Tab_stack[file_index].Ustack->size = strlen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]) + 1;
-                 Tab_stack[file_index].Ustack->line = (char *)malloc(Tab_stack[file_index].Ustack->size);
+                 Tab_stack[file_index].Ustack->line = malloc(Tab_stack[file_index].Ustack->size);
                  memset(Tab_stack[file_index].Ustack->line, 0, Tab_stack[file_index].Ustack->size);
                  Tab_stack[file_index].Ustack->line = strdup(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]); // If it's not a duplicate, the value will change
                  Tab_stack[file_index].Ustack->line_count = Tab_stack[file_index].ypos;
@@ -2415,9 +2412,9 @@ int main(int argc, char *argv[])
                 else
                 {
 
-                    for (int i = 0; i < (Tab_stack[file_index].xpos - bs_tk <= 0) ? 0 : Tab_stack[file_index].xpos - bs_tk; i++)
+                    for (int i = 0; i < (Tab_stack[file_index].xpos - bs_tk <= 0) ? 0 : Tab_stack[file_index].xpos - bs_tk; i++) // TODO: Use DeleteStr instead
                     {
-                        temp_strsave = DeleteCharLeft(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], bs_tk);
+                        temp_strsave = DeleteChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], bs_tk);
                         strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], temp_strsave, BUFFER_X);
                         Tab_stack[file_index].xpos--;
                     }
@@ -2448,7 +2445,7 @@ int main(int argc, char *argv[])
             ch = 0;
         }
 
-        if (ch == 25) // ^Y = Redo
+        if (ch == CTRLY) // ^Y = Redo
         {
 
             /* strncpy_n(undo_stack, Tab_stack[file_index].strsave[undo_stack_line], BUFFER_X);
@@ -2467,14 +2464,13 @@ int main(int argc, char *argv[])
             {
                 CountBufferLines(&Tab_stack[file_index]);
 
-                ptr = extension_filetype(Tab_stack[file_index].filename);
-                snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%lu lines). File type: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (size_t)Tab_stack[file_index].linecount, ptr);
+                snprintf(tmp, DEFAULT_BUFFER_X, "File: \'%s\', size: %lld bytes (%lu lines). File type: %s", StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), Tab_stack[file_index].size, (size_t)Tab_stack[file_index].linecount, Tab_stack[file_index].language);
                 PrintBottomString(tmp);
                 c = -2;
                 ch = 0;
             }
         }
-        if (ch == 26) // ^Z = Undo
+        if (ch == CTRLZ) // ^Z = Undo
         {
             if (undo_stack_tree > 0)
             {
@@ -2512,7 +2508,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (ch == 8 && !CheckKey(BS) && CheckKey(VK_CONTROL)) // ^H = Replace string / S-^H = Same as F1 (opens help)
+        if (ch == CTRLH && !CheckKey(BS) && CheckKey(VK_CONTROL)) // ^H = Replace string / S-^H = Same as F1 (opens help)
         {
             ch = 0;
 
@@ -2585,11 +2581,11 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        #ifdef _WIN32
+#ifdef _WIN32
         if ((ch == BS && _NEWTRODIT_OLD_SUPPORT == 1) || (ch == BS && CheckKey(BS) && !CheckKey(VK_CONTROL))) // BS key (Avoiding Control-H)
-        #else
-        if(ch == BS)
-        #endif
+#else
+        if (ch == BS)
+#endif
         {
             c = -8; // Negative to avoid conflict
             if (Tab_stack[file_index].xpos > 0)
@@ -2619,34 +2615,30 @@ int main(int argc, char *argv[])
                         hasNewLine = true;
                     }
 
-                    tmp = DeleteCharLeft(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], Tab_stack[file_index].xpos - 1);
+                    DeleteChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], --Tab_stack[file_index].xpos);
+                    Tab_stack[file_index].xpos--;
                     if (hasNewLine)
                     {
                         strncat(tmp, Tab_stack[file_index].newline, strlen(Tab_stack[file_index].newline)); // strcat for CRLF newline
                     }
 
-                    strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], tmp, BUFFER_X);
+                    // strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], tmp, BUFFER_X);
                     ClearPartial((lineCount ? Tab_stack[file_index].linecount_wide : 0) + (NoLfLen(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos])), Tab_stack[file_index].display_y, 2, 1); // Clear the character
                     gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
-                    print_line(tmp);
+                    print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
                 }
                 else
                 {
                     Tab_stack[file_index].strsave[Tab_stack[file_index].ypos][Tab_stack[file_index].xpos - 1] = '\0';
-                    //#ifdef _WIN32
                     fputs("\b \b", stdout);
-                  /*   #else
-                        ClearPartial(GetConsoleInfo(XCURSOR), Tab_stack[file_index].display_y, 1, 1);
-                        printf("egfqhwef");
-                        getch_n();
-                    #endif */
+
+                    if (syntaxHighlighting)
+                    {
+                        gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
+                        print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
+                    }
+                    Tab_stack[file_index].xpos -= 2;
                 }
-                if (syntaxHighlighting)
-                {
-                    gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y);
-                    print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
-                }
-                Tab_stack[file_index].xpos -= 2;
             }
             else
             {
@@ -2684,10 +2676,8 @@ int main(int argc, char *argv[])
         {
             if ((ch > 31 && ch != BS) || (ch == TAB && CheckKey(TAB))) // Printable character
             {
-                if (!Tab_stack[file_index].is_modified)
-                {
-                    Tab_stack[file_index].is_modified = true;
-                }
+
+                Tab_stack[file_index].is_modified = true;
 
                 if (!insertChar && ch != 9) // Insert key not pressed
                 {
@@ -2698,11 +2688,8 @@ int main(int argc, char *argv[])
                         {
                             relative_xpos[Tab_stack[file_index].ypos] += TAB_WIDE;
                         }
-                        tmp = InsertChar(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], ch, Tab_stack[file_index].xpos);
-                        strncpy_n(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos], tmp, BUFFER_X);
-                        gotoxy((lineCount ? Tab_stack[file_index].linecount_wide : 0), Tab_stack[file_index].display_y); // Maybe this creates a bug, I don't know
-                        print_line(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]);
-
+                        Tab_stack[file_index].strsave[Tab_stack[file_index].ypos] = InsertChar(strdup(Tab_stack[file_index].strsave[Tab_stack[file_index].ypos]), ch, Tab_stack[file_index].xpos);
+                        RefreshLine(&Tab_stack[file_index], Tab_stack[file_index].ypos, Tab_stack[file_index].display_y, false); // No need to clear the line as it will get overwritten
                         ch = 0;
                     }
                 }

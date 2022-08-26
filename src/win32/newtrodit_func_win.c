@@ -67,8 +67,19 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 		{
 			ClearPartial(0, disp + 1, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
 		}
-
 		SetColor(linecount_color);
+
+		if (linecountHighlightLine)
+		{
+
+			ClearPartial(0, tstack->last_dispy, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
+
+			printf("%d", tstack->last_y);
+
+			tstack->last_dispy = tstack->display_y;
+			tstack->last_y = tstack->ypos;
+			SetColor(linecount_highlight_color);
+		}
 		ClearPartial(0, disp, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
 
 		printf("%d", tstack->ypos);
@@ -105,7 +116,7 @@ void LoadLineCount(File_info *tstack, int startpos, int starty)
 		// Algorithm tested successfully with 5 and 7 giving the best performance results.
 		int skipamount = 5;
 		(n > 45) ? (skipamount = 7) : (skipamount = 5);
-		char *print_line = (char *)calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide + 1) * n), *tempbuf = (char *)calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide));
+		char *print_line = calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide + 1) * n), *tempbuf = calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide));
 
 		if (tstack->ypos >= (n - 2))
 		{
@@ -349,6 +360,35 @@ int SaveFile(File_info *tstack)
 	return 1;
 }
 
+char *extension_filetype(File_info *tstack)
+{
+	char *extension = DEFAULT_LANGUAGE;
+	char *ptr;
+	if (!strpbrk(tstack->filename, "."))
+	{
+		return extension;
+	}
+	extension = StrLastTok(Tab_stack[file_index].filename, ".");
+	for (int i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
+	{
+		for (size_t k = 0; k < FileLang[i].extcount; k++)
+		{
+
+			ptr = strtok(FileLang[i].extensions, "|");
+			while (ptr != NULL)
+			{
+				if (!strcmp(extension, ptr))
+				{
+					tstack->language = FileLang[i].display_name;
+					return tstack->language;
+				}
+				ptr = strtok(NULL, "|");
+			}
+		}
+	}
+	tstack->language = "Unknown file type";
+	return tstack->language;
+}
 int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 {
 	WriteLogFile(join("Loading file: ", filename));
@@ -537,7 +577,7 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	tstack->is_saved = true;
 	tstack->is_modified = false;
 	tstack->is_readonly = false; // We'll check if it's read-only later
-
+	extension_filetype(tstack);
 	tstack->hFile = CreateFile(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // Open a handle to the file
 	if (tstack->hFile == INVALID_HANDLE_VALUE)
 	{
@@ -697,7 +737,7 @@ int UpdateHomeScrolledScreen(File_info *tstack)
 	if (tstack->ypos >= (YSIZE - 3))
 	{
 		tstack->ypos = 1;
-		ClearPartial(0, 1, XSIZE, YSCROLL);
+		ClearPartial(0, 1, XSIZE, YSIZE - 2);
 		DisplayFileContent(tstack, stdout, 0);
 		c = -32; // -32 means that the screen has been scrolled
 		return 1;
@@ -728,66 +768,104 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 	int cursor_visible = GetConsoleInfo(CURSOR_VISIBLE);
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 	int chr = 0, index = 0;
-	char *num_str = (char *)malloc(max_len) + 1;
+	char *num_str = calloc(max_len + 1, sizeof(char));
+	char *ptr;
+	int startx = GetConsoleInfo(XCURSOR), starty = GetConsoleInfo(YCURSOR), orig_cursize = GetConsoleInfo(CURSOR_SIZE);
+	bool overwrite_mode = false;
 
-	memset(num_str, 0, max_len); // Clear string
-	while (chr != 13)			 // Loop while enter isn't pressed
+	while (chr != ENTER) // Loop while enter isn't pressed
 	{
-		chr = getch();
-		if (chr == 27)
+		chr = getch_n();
+		if (chr == ESC)
 		{
 			break;
 		}
-		if (chr == 8) // Backspace
+		if (chr == BS) // Backspace
 		{
 			if (index > 0)
 			{
-				num_str[index--] = '\0';
-				printf("\b \b");
+				DeleteChar(num_str, --index);
+				ClearPartial(startx, starty, (startx + strlen(num_str)) >= XSIZE ? (XSIZE - startx) : startx + strlen(num_str), 1);
+				fputs(num_str, stdout);
+				gotoxy(startx + index, starty);
 			}
 			continue;
 		}
 
-		if (chr == 0xE0)
+		if (chr & BIT_ESC0)
 		{
-			chr = getch();
-			switch (chr)
+			switch (chr & ~(BIT_ESC0))
 			{
-			case 75:
+			case ALTF4:
+
+				QuitProgram(SInf.color);
+				break;
+			default:
+				break;
+			}
+		}
+		if (chr & BIT_ESC224) // Special keys: 224 (0xE0)
+		{
+			switch (chr & (~BIT_ESC224))
+			{
+			case LEFT:
 				if (index > 0)
 				{
 					putchar('\b');
 					index--;
 				}
 				break;
-			case 77:
+			case RIGHT:
+				if (index < max_len && num_str[index] != '\0')
+				{
+					putchar(num_str[index++]);
+				}
+				break;
+			case DEL:
 				if (index < max_len)
 				{
-					printf("%c", num_str[index]);
-
-					index++;
+					DeleteChar(num_str, index);
+					ClearPartial(startx, starty, (startx + strlen(num_str)) >= XSIZE ? (XSIZE - startx) : startx + strlen(num_str), 1);
+					fputs(num_str, stdout);
+					gotoxy(startx + index, starty);
 				}
+				break;
+			case INS:
+				overwrite_mode = !overwrite_mode;
+				SetCursorSettings(true, overwrite_mode ? CURSIZE_INS : CURSIZE);
+
 				break;
 			default:
 				break;
 			}
 			continue;
 		}
-		if (chr >= min_ascii && chr <= max_ascii && chr != 0) // Check if character is a between the range
+		if (chr >= min_ascii && chr <= max_ascii && chr != 0 && ((!overwrite_mode && (strlen(num_str) < max_len && index <= max_len)) || (overwrite_mode && (strlen(num_str) <= max_len && index < max_len)))) // Check if character is a between the range
 		{
-			if (strlen(num_str) >= max_len && index >= max_len) // Check if max length is reached
-			{
-				putchar('\a');
-			}
-			else
+			if (overwrite_mode)
 			{
 				num_str[index++] = chr;
 				putchar(chr);
 			}
+			else
+			{
+				num_str = InsertChar(strdup(num_str), chr, index++);
+				gotoxy(startx, starty);
+				fputs(num_str, stdout);
+				gotoxy(startx + index, starty);
+			}
+
+			WriteLogFile(num_str);
+		}
+		else
+		{
+			if (chr != ENTER)
+			{
+				putchar('\a');
+			}
 		}
 	}
-	SetCursorSettings(cursor_visible, GetConsoleInfo(CURSOR_SIZE));
-
+	SetCursorSettings(cursor_visible, orig_cursize);
 	return num_str;
 }
 
@@ -874,7 +952,7 @@ int InsertNewRow(File_info *tstack, int *xps, int *yps, int dispy, int size, cha
 
 	// Allocate the memory for the new line
 
-	tstack->strsave[*yps] = (char *)calloc(size, sizeof(char));
+	tstack->strsave[*yps] = calloc(size, sizeof(char));
 
 	// Copy all characters starting from xpos from the old line to the new line
 
@@ -917,8 +995,8 @@ int LocateFiles(bool show_dir, char *file, int startpos)
 			return 0;
 		}
 	}
-	char *dir_tmp = (char *)calloc(MAX_PATH * 2, sizeof(char));
-	char *out_dir = (char *)calloc(MAX_PATH * 2, sizeof(char));
+	char *dir_tmp = calloc(MAX_PATH * 2, sizeof(char));
+	char *out_dir = calloc(MAX_PATH * 2, sizeof(char));
 	GetCurrentDirectory(MAX_PATH, dir_tmp);
 
 	if (!isWildcard && get_path_directory(file, out_dir))
@@ -1055,15 +1133,34 @@ int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char *
 
 	for (int i = 0; i < keywords_len; i++)
 	{
-		matching_tmp[i] = (char *)calloc(keywords_len, sizeof(char)); // Allocate memory for the matching strings
+		matching_tmp[i] = calloc(keywords_len, sizeof(char)); // Allocate memory for the matching strings
 	}
 	// Use Levenshtein distance to find the matching strings
 }
 
 void ErrorExit(char *s)
 {
-	MessageBox(0, s, "Newtrodit", 16);
+	WriteLogFile(s);
+	PrintBottomString(s);
+	getch_n();
 	return;
+}
+
+DWORD GetKeyboardCurrentState(SHORT *keybd_layout) // Not to be confused with WinAPI's GetKeyState() or GetKeyboardState()
+{
+	for (int i = 0; i < 256; i++)
+	{
+		keybd_layout[i] = GetAsyncKeyState(i);
+	}
+	return 1;
+}
+
+DWORD _InitKeyboardMap()
+{
+	for (int i = 0; i < 256; i++)
+	{
+		GetAsyncKeyState(i);
+	}
 }
 
 int GetNewtroditInput(File_info *tstack)
@@ -1071,16 +1168,73 @@ int GetNewtroditInput(File_info *tstack)
 	HANDLE hStdin, hStdout;
 	DWORD fdwSaveOldMode;
 	DWORD cNumRead, fdwMode, i;
-	INPUT_RECORD irInBuffer[128];
+	INPUT_RECORD irInBuffer;
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-	BYTE vkbuf[256] = {0};
-	int virtual_key;
-
+	SHORT *keybd_layout_ptr, *keybd_layout_ptr2;
+	bool ignore_next_key = false, is_altnum = false;
 	COORD oldSize = {0}, newSize = {0};
 	// Get the standard input handle.
 
+	int key_press = 0; // An intermediate variable will be used to avoid bugs with SetConsoleMode()
+
 	int x = 0, y = 0, old_ypos = 1;
+	int altnum_index = 0;
+	char altnum_buf[300];
+
+	SHORT ign_vkcodes[] = {
+		VK_LBUTTON,
+		VK_RBUTTON,
+		VK_CANCEL,
+		VK_MBUTTON,
+		VK_XBUTTON1,
+		VK_XBUTTON2,
+		VK_HANGUL,
+		VK_HANJA,
+		0x16,
+		0x17,
+		VK_FINAL,
+		0x1A,
+		VK_CONVERT,
+		VK_NONCONVERT,
+		VK_ACCEPT,
+		VK_MODECHANGE,
+		VK_SHIFT,
+		VK_CONTROL,
+		VK_MENU,
+		VK_CAPITAL,
+		VK_NUMLOCK,
+		VK_SCROLL,
+		VK_LWIN,
+		VK_RWIN,
+		VK_LSHIFT,
+		VK_RSHIFT,
+		VK_LCONTROL,
+		VK_RCONTROL,
+		VK_LMENU,
+		VK_RMENU,
+		VK_SNAPSHOT,
+		VK_PAUSE,
+		VK_APPS,
+		0xA6,
+		0xA7,
+		0xA8,
+		0xA9,
+		0xAA,
+		0xAB,
+		0xAC,
+		0xAD,
+		0xAE,
+		0xAF,
+		0xB0,
+		0xB1,
+		0xB2,
+		0xB3,
+		0xB4,
+		0xB5,
+		0xB6,
+		0xB7,
+		0xFF,
+	};
 
 	// Get the standard input handle.
 
@@ -1092,208 +1246,215 @@ int GetNewtroditInput(File_info *tstack)
 	}
 	GetConsoleScreenBufferInfo(hStdout, &csbi);
 
+	if (partialMouseSupport)
+	{
+		keybd_layout_ptr = calloc(sizeof(SHORT), 256);
+		keybd_layout_ptr2 = calloc(sizeof(SHORT), 256); // Allocate size for each of the 256 possible keys
+		if (!keybd_layout_ptr || !keybd_layout_ptr2)
+		{
+			ErrorExit(NEWTRODIT_ERROR_OUT_OF_MEMORY);
+			return 0;
+		}
+	}
+	GetConsoleMode(hStdin, &fdwSaveOldMode);
+	WriteLogFile(itoa_n(fdwSaveOldMode));
+	SetConsoleMode(hStdin, ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT | (fdwSaveOldMode & 0x40)); // Only enable these 2 modes
+
+	size_t press_count = 0, release_count = 0;
+
+	//_InitKeyboardMap();
 	while (1)
 	{
-
+		if (partialMouseSupport)
+		{
+			GetKeyboardCurrentState(keybd_layout_ptr);
+		}
 		if (allowAutomaticResizing)
 		{
 			oldSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
 			oldSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 		}
+
 		WaitForSingleObject(hStdin, INFINITE);
 		// Wait for the events.
-		if (PeekConsoleInput(hStdin, irInBuffer, 128, &cNumRead) == 0)
+		if (PeekConsoleInput(hStdin, &irInBuffer, 1, &cNumRead) == 0)
 		{
-			ErrorExit("PeekConsoleInput");
+			ErrorExit("PeekConsoleInput() failed");
+			SetConsoleMode(hStdin, fdwSaveOldMode);
 			return 0;
 		}
-		for (int i = 0; i < cNumRead; i++)
+
+		if (irInBuffer.EventType == KEY_EVENT)
 		{
-			if (irInBuffer[i].EventType == KEY_EVENT) // Must have pressed the key, not released
+			if (partialMouseSupport)
 			{
+				GetKeyboardCurrentState(keybd_layout_ptr2);
 
-				if (partialMouseSupport)
+				ignore_next_key = false;
+				for (int i = 0; i < 256; ++i)
 				{
-					WriteLogFile(join(join(itoa_n(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode), "\t"), "x"));
-					if (!(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_SHIFT || irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_MENU || irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_CONTROL) && GetAsyncKeyState(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode) != 0) // Key pressed
+					if (keybd_layout_ptr[i] != keybd_layout_ptr2[i])
 					{
-						return getch_n();
-					}
-					/* if (GetKeyboardState(vkbuf))
-					{
-						for (int j = 0; j < 256; j++)
+						if (keybd_layout_ptr[i] == 0 || ((keybd_layout_ptr[i] & 0x8000) && (keybd_layout_ptr2[i] & 0x8000)))
 						{
-							if (vkbuf[j] != 0 && irInBuffer[i].Event.KeyEvent.wVirtualKeyCode == j)
+							// printf("\n[P] Key pressed %d\t'%c'. ", i, MapVirtualKey(i, 2));
+							if (keybd_layout_ptr2[VK_LMENU] && i >= VK_NUMPAD0 && i <= VK_NUMPAD9 && altnum_index < sizeof(altnum_buf)) // Using the numpad Alt+Num
 							{
-								return getch();
+								altnum_buf[altnum_index++] = MapVirtualKey(i, 2); // Map the key to the Alt+Num to a numeric string.
+								// printf("Alt+Num %d\t'%c'. ", i, MapVirtualKey(i, 2));
+								break;
 							}
-						}
-					} */
-					/* if (irInBuffer[i].Event.KeyEvent.wRepeatCount && GetKeyState(irInBuffer[i].Event.KeyEvent.wVirtualKeyCode))
-					{
-						//printf("[%d]", irInBuffer[i].Event.KeyEvent.wVirtualKeyCode);
-						WriteLogFile("1");
-						return getch();
-					}
-					else
-					{
-						// printf("0");
-						WriteLogFile("0");
-					} */
-				}
-				else
+							for (int k = 0; k < sizeof(ign_vkcodes) / sizeof(ign_vkcodes[0]); k++) // Ignore all the keys in the list as getch_n() can't handle them.
+							{
+								if (i == ign_vkcodes[k])
+								{
+									ignore_next_key = true;
+								}
+							}
 
-				{
-					return getch_n();
-				}
-			}
-			if (irInBuffer[i].EventType == FOCUS_EVENT)
-			{
-				// Ignore window focus events.
-			}
+							if (!ignore_next_key)
+							{
+								key_press = getch_n();
+								SetConsoleMode(hStdin, fdwSaveOldMode);
 
-			if (irInBuffer[i].EventType == WINDOW_BUFFER_SIZE_EVENT)
-			{
-				if (allowAutomaticResizing)
-				{
-
-					GetConsoleScreenBufferInfo(hStdout, &csbi);
-					newSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-					newSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-
-					if ((oldSize.X != newSize.X || oldSize.Y != newSize.Y))
-					{
-
-						if (ValidSize()) // At 3 message boxes, close the program
-						{
-							SetConsoleSize(oldSize.X, oldSize.Y);
+								return key_press;
+							}
 						}
 						else
 						{
-							SetConsoleSize(newSize.X, newSize.Y);
-							oldSize.X = newSize.X;
-							oldSize.X = newSize.Y; // Routine to resize the console window and adapt the current screen buffer size to the new console size.
+							if (i == VK_LMENU)
+							{
+								if (altnum_buf[0] != 0)
+								{
+									SetConsoleMode(hStdin, fdwSaveOldMode);
+									return atoi(altnum_buf) % 256;
+								}
+							}
 						}
-						WriteLogFile(join(join(join("Resized the console window: ", itoa_n(newSize.X)), "x"), itoa_n(newSize.Y)));
-						// printf("Console size changed from %dx%d to %dx%d\n", old_x_size, old_y_size, new_x_size, new_y_size);
-						clearAllBuffer = true;
-						LoadAllNewtrodit();
-						clearAllBuffer = false;
-						DisplayFileContent(&Tab_stack[file_index], stdout, 0);
-						DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
-
-						SetDisplayY(&Tab_stack[file_index]);
-						SetDisplayCursorPos(&Tab_stack[file_index]);
 					}
 				}
 			}
-			if (partialMouseSupport)
+			else
+			{
+				key_press = getch_n();
+				SetConsoleMode(hStdin, fdwSaveOldMode);
+
+				return key_press;
+			}
+		}
+		if (irInBuffer.EventType == WINDOW_BUFFER_SIZE_EVENT)
+		{
+			if (allowAutomaticResizing)
 			{
 
-				if (irInBuffer[i].EventType == MOUSE_EVENT) // Mouse event
+				GetConsoleScreenBufferInfo(hStdout, &csbi);
+				newSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+				newSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+
+				if ((oldSize.X != newSize.X || oldSize.Y != newSize.Y))
 				{
-					if (irInBuffer[i].Event.MouseEvent.dwEventFlags == MOUSE_WHEELED) // Vertical scroll
-					{
-						if (!(irInBuffer[i].Event.MouseEvent.dwButtonState & 0x80000000)) // Up
-						{
-							if (tstack->ypos >= 1 && tstack->strsave[tstack->ypos][0] != '\0')
-							{
-								(tstack->ypos - scrollRate > 1) ? (tstack->ypos -= scrollRate) : (tstack->ypos = 1);
-								if (tstack->last_pos_scroll == -1)
-								{
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
-								{
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								UpdateScrolledScreen(tstack);
-								DisplayCursorPos(tstack->xpos, tstack->ypos);
-								SetDisplayY(tstack);
-								SetDisplayCursorPos(tstack);
-							}
-						}
-						else // Down
-						{
-							if (tstack->ypos + scrollRate < tstack->bufy && tstack->strsave[tstack->ypos + scrollRate][0] != '\0')
-							{
-								tstack->ypos += scrollRate;
-								if (tstack->last_pos_scroll == -1)
-								{
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
-								{
-									tstack->last_pos_scroll = -1; // End of line
-									tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
-								}
-								DisplayCursorPos(tstack->xpos, tstack->ypos);
-								SetDisplayY(tstack);
-								UpdateScrolledScreen(tstack);
 
-								SetDisplayCursorPos(tstack);
-							}
-						}
+					if (ValidSize()) // At 3 message boxes, close the program
+					{
+						SetConsoleSize(oldSize.X, oldSize.Y);
 					}
-					if (irInBuffer[i].Event.MouseEvent.dwEventFlags == DOUBLE_CLICK)
+					else
 					{
-						// TODO: Select the word
+						SetConsoleSize(newSize.X, newSize.Y);
+						oldSize.X = newSize.X;
+						oldSize.X = newSize.Y; // Routine to resize the console window and adapt the current screen buffer size to the new console size.
 					}
-					if (irInBuffer[i].Event.MouseEvent.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED && irInBuffer[i].Event.MouseEvent.dwEventFlags != MOUSE_MOVED)
+					WriteLogFile(join(join(join("Resized the console window: ", itoa_n(newSize.X)), "x"), itoa_n(newSize.Y)));
+					// printf("Console size changed from %dx%d to %dx%d\n", old_x_size, old_y_size, new_x_size, new_y_size);
+					clearAllBuffer = true;
+					LoadAllNewtrodit();
+					clearAllBuffer = false;
+					DisplayFileContent(&Tab_stack[file_index], stdout, 0);
+					DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
+
+					SetDisplayY(&Tab_stack[file_index]);
+					SetDisplayCursorPos(&Tab_stack[file_index]);
+				}
+			}
+		}
+		if (partialMouseSupport)
+		{
+
+			if (irInBuffer.EventType == MOUSE_EVENT) // Mouse event
+			{
+				if (irInBuffer.Event.MouseEvent.dwEventFlags == MOUSE_WHEELED) // Vertical scroll
+				{
+					if (!(irInBuffer.Event.MouseEvent.dwButtonState & 0x80000000)) // Up
 					{
-
-						x = irInBuffer[i].Event.MouseEvent.dwMousePosition.X;
-						y = irInBuffer[i].Event.MouseEvent.dwMousePosition.Y;
-
-						if (x <= XSIZE && x < tstack->bufx && y < tstack->bufy && y <= YSCROLL && tstack->strsave[y][0] != '\0')
+						if (tstack->ypos >= 1 && tstack->strsave[tstack->ypos][0] != '\0')
 						{
-
-							old_ypos = tstack->ypos;
-							SetYFromDisplayY(tstack, y);
-							tstack->xpos = (x - (lineCount ? tstack->linecount_wide : 0) > NoLfLen(tstack->strsave[tstack->ypos]) ? NoLfLen(tstack->strsave[tstack->ypos]) : x - (lineCount ? tstack->linecount_wide : 0));
-							if (y < YSCROLL && old_ypos >= tstack->display_y) // Avoid reloading the screen unnecessarely
+							(tstack->ypos - scrollRate > 1) ? (tstack->ypos -= scrollRate) : (tstack->ypos = 1);
+							if (tstack->last_pos_scroll == -1)
 							{
-								RedrawScrolledScreen(tstack, tstack->ypos);
+								tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 							}
+							if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
+							{
+								tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
+							}
+							UpdateScrolledScreen(tstack);
 							DisplayCursorPos(tstack->xpos, tstack->ypos);
 							SetDisplayY(tstack);
 							SetDisplayCursorPos(tstack);
 						}
 					}
+					else // Down
+					{
+						if (tstack->ypos + scrollRate < tstack->bufy && tstack->strsave[tstack->ypos + scrollRate][0] != '\0')
+						{
+							tstack->ypos += scrollRate;
+							if (tstack->last_pos_scroll == -1)
+							{
+								tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
+							}
+							if (tstack->xpos > NoLfLen(tstack->strsave[tstack->ypos]))
+							{
+								tstack->last_pos_scroll = -1; // End of line
+								tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
+							}
+							DisplayCursorPos(tstack->xpos, tstack->ypos);
+							SetDisplayY(tstack);
+							UpdateScrolledScreen(tstack);
+
+							SetDisplayCursorPos(tstack);
+						}
+					}
 				}
-				FlushConsoleInputBuffer(hStdin);
+				if (irInBuffer.Event.MouseEvent.dwEventFlags == DOUBLE_CLICK)
+				{
+					// TODO: Select the word
+				}
+				if (irInBuffer.Event.MouseEvent.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED && irInBuffer.Event.MouseEvent.dwEventFlags != MOUSE_MOVED)
+				{
+
+					x = irInBuffer.Event.MouseEvent.dwMousePosition.X;
+					y = irInBuffer.Event.MouseEvent.dwMousePosition.Y;
+
+					if (x <= XSIZE && x < tstack->bufx && y < tstack->bufy && y <= YSCROLL && tstack->strsave[y][0] != '\0')
+					{
+
+						old_ypos = tstack->ypos;
+						SetYFromDisplayY(tstack, y);
+						tstack->xpos = (x - (lineCount ? tstack->linecount_wide : 0) > NoLfLen(tstack->strsave[tstack->ypos]) ? NoLfLen(tstack->strsave[tstack->ypos]) : x - (lineCount ? tstack->linecount_wide : 0));
+						if (y < YSCROLL && old_ypos >= tstack->display_y) // Avoid reloading the screen unnecessarely
+						{
+							RedrawScrolledScreen(tstack, tstack->ypos);
+						}
+						DisplayCursorPos(tstack->xpos, tstack->ypos);
+						SetDisplayY(tstack);
+						SetDisplayCursorPos(tstack);
+					}
+				}
 			}
+			FlushConsoleInputBuffer(hStdin);
 		}
+		FlushConsoleInputBuffer(hStdin);
 	}
 
 	return 0;
-}
-
-char *extension_filetype(char *filename)
-{
-	char *extension = "File";
-	char *ptr;
-	if (!strpbrk(filename, "."))
-	{
-		return extension;
-	}
-	extension = StrLastTok(Tab_stack[file_index].filename, ".");
-	for (int i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
-	{
-		for (size_t k = 0; k < FileLang[i].extcount; k++)
-		{
-
-			ptr = strtok(FileLang[i].extensions, "|");
-			while (ptr != NULL)
-			{
-				if (!strcmp(extension, ptr))
-				{
-					return FileLang[i].display_name;
-				}
-				ptr = strtok(NULL, "|");
-			}
-			
-		}
-	}
-	return (char *)"Unknown file type";
 }

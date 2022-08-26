@@ -41,7 +41,7 @@ int EmptySyntaxScheme(File_info *tstack)
 int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
 {
 
-    WriteLogFile("Loading syntax highlighting scheme");
+    WriteLogFile(join("Loading syntax highlighting scheme: ", syntax_fn));
 
     fseek(syntaxfp, 0, SEEK_SET); // Set the file pointer to the beginning of the file
     char *read_syntax_buf = (char *)malloc(sizeof(char) * LINE_MAX);
@@ -94,7 +94,7 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
 
             strncpy_n(syntax_language, read_syntax_buf + strlen(NEWTRODIT_SYNTAX_LANGUAGE) + 1, MAX_PATH); // Whitespace character
 
-            tstack->Syntaxinfo.syntax_lang = (char *)calloc(strlen(syntax_language), sizeof(char));
+            tstack->Syntaxinfo.syntax_lang = calloc(strlen(syntax_language), sizeof(char));
 
             tstack->Syntaxinfo.syntax_lang = strdup(syntax_language);
 
@@ -167,7 +167,7 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
         {
             tstack->Syntaxinfo.keywords = (char **)realloc(tstack->Syntaxinfo.keywords, sizeof(char *) * (c + 1));
             tstack->Syntaxinfo.color = (int *)realloc(tstack->Syntaxinfo.color, sizeof(int) * (c + 1));
-            tstack->Syntaxinfo.keywords[c] = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char)); // Allocate memory for the new keyword
+            tstack->Syntaxinfo.keywords[c] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char)); // Allocate memory for the new keyword
             //tstack->Syntaxinfo.color[c] = (int)calloc(1, sizeof(int));
         }
         tstack->Syntaxinfo.keywords[c] = strdup(iniptr);

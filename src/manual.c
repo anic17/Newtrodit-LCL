@@ -308,6 +308,10 @@ int NewtroditHelp()
 								printf("%s", newtrodit_repository);
 								k++;
 								break;
+							case 'T':
+								printf("%d", MAX_TABS);
+								k++;
+								break;
 							default:
 								printf("%c", manual_buf[man_line_count][++k]);
 							}
@@ -456,8 +460,8 @@ int NewtroditHelp()
 		case 7: // ^G
 			SetColor(FG_DEFAULT);
 			PrintBottomString(NEWTRODIT_PROMPT_GOTO_LINE);
-
-			gotoline_man = TypingFunction('0', '9', strlen(itoa_n(MANUAL_BUFFER_Y)));
+			
+			gotoline_man = TypingFunction('0', '9', strlen(itoa_n(max_manual_lines)));
 			if (atoi(gotoline_man) < 0 || atoi(gotoline_man) > max_manual_lines || atoi(gotoline_man) >= MANUAL_BUFFER_Y) // Line is less than 1
 			{
 				PrintBottomString(join(join(NEWTRODIT_ERROR_MANUAL_INVALID_LINE, itoa_n(max_manual_lines)), ")"));

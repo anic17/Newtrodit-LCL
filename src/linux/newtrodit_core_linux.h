@@ -51,6 +51,7 @@
 
 #define TAB_WIDE_ 2
 #define CURSIZE_ 20
+#define CURSIZE_INS 80
 #define LINECOUNT_WIDE_ 4 // To backup original value
 #define MIN_BUFSIZE 256
 #define LINE_MAX 8192
@@ -219,6 +220,8 @@ typedef struct File_info
   char *filename;
   char *fullpath;
 
+  char *language; // Language (e.g: PowerShell, C, C++, etc.)
+
   bool is_readonly;
   int permissions;
 
@@ -230,8 +233,9 @@ typedef struct File_info
   int ypos;
   int display_x;
   int display_y;
-  int topmost_display_y; // Used for scrolling
-  int last_pos_scroll;   // Last X position before scrolling
+  int last_dispy; // Used for line number highlighting
+  int last_y;
+  int last_pos_scroll; // Last X position before scrolling
 
   bool scrolled_x; // If the cursor is scrolled to the right
   bool scrolled_y; // If the file is scrolled vertically
@@ -302,8 +306,8 @@ char *HexToAnsi(int num)
 {
   char hex_table[16] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
   char ansi_table[16] = {30, 34, 32, 36, 31, 35, 33, 37, 90, 94, 91, 95, 92, 96, 93, 97};
-  char *buf = (char *)calloc(1, sizeof(char) * 32); // Allocate enough memory
-  if (num < 0 || num > 0xff)                        // Keep a valid number range
+  char *buf = calloc(1, sizeof(char) * 32); // Allocate enough memory
+  if (num < 0 || num > 0xff)                // Keep a valid number range
   {
     return NULL;
   }
@@ -622,34 +626,54 @@ int HexStrToDec(char *s)
   return strtol(s, NULL, 16);
 }
 
-/* Parse string hex to BIOS standards */
+#ifdef strlwr
+#undef strlwr
+#endif
+char *strlwr(char *s)
+{
+  char *s2 = malloc(strlen(s) + 1);
+  for (int i = 0; i < strlen(s); i++)
+  {
+    s2[i] = tolower(s[i]);
+  }
+  s2[strlen(s)] = '\0';
+  return s2;
+}
+
 char *ParseHexString(char *hexstr)
 {
-  int count = 0, index = 0;
+  int hstd_return = 0, index = 0;
   char *hex_prefix = "0x";
-  char *strpbrk_ptr;
-  char *str = (char *)malloc(strlen(hexstr) + 1);
-  if (!strpbrk(hexstr, "01234567890abcdefABCDEF"))
+  char *ptr_tokenize;
+  size_t max_len = 2 * (strlen(hexstr) + 1);
+  char *str = calloc(max_len, sizeof(char));
+  if (!str)
+  {
+    last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
+    return NULL;
+  }
+  char *delims = ", \t\n";
+  if (!strpbrk(hexstr, "01234567890abcdefABCDEF")) // Make sure strings contains hex characters
   {
     return hexstr;
   }
 
-  // Convert an hex string to a string
-  strpbrk_ptr = strpbrk(hexstr, ", \t");
-
   // Convert the string to a hex string
-  for (int i = 0; i < strlen(hexstr); i++)
+  ptr_tokenize = strtok(hexstr, delims);
+  while (ptr_tokenize != NULL)
   {
-    if (isxdigit(hexstr[i]) && isxdigit(hexstr[i + 1]))
+    if (!strncmp(strlwr(ptr_tokenize), hex_prefix, strlen(hex_prefix))) // Only parse if the strings starts with 0x
     {
-      str[index] = hexstr[i] * 16 + hexstr[i + 1];
-      index++;
+      hstd_return = HexStrToDec(ptr_tokenize);
+      if (hstd_return % 256) // Ignore null values
+      {
+        str[index] = HexStrToDec(ptr_tokenize);
+        index++;
+      }
     }
-    else if (hexstr[i] != ' ' && hexstr[i] != ',' && hexstr[i] != '\t')
-    {
-      return NULL;
-    }
+    ptr_tokenize = strtok(NULL, delims);
   }
+  return hexstr;
 }
 
 /* =============================== END OF TERM ================================== */
@@ -767,7 +791,7 @@ int TokBackPos(char *s, char *p, char *p2)
 /* Print tab of set size? */
 char *PrintTab(int tab_count)
 {
-  char *s = (char *)malloc(sizeof(char) * (tab_count + 1));
+  char *s = malloc(sizeof(char) * (tab_count + 1));
   memset(s, 32, tab_count);
   return s;
 }
@@ -841,7 +865,7 @@ char *ReplaceString(char *s, char *find, char *replace, int *occurenceCount)
   int replacelen = strlen(replace);
   int findlen = strlen(find);
   // BUG: Assigning to 'char *' from incompatible type 'void *'
-  result = (char *)malloc(strlen(s) + 1 + BUFFER_X);
+  result = malloc(strlen(s) + 1 + BUFFER_X);
   for (size_t i = 0; s[i] != '\0'; i++)
   {
     if (strncmp(s + i, find, findlen) == 0)
@@ -864,7 +888,7 @@ char *ReplaceString(char *s, char *find, char *replace, int *occurenceCount)
 char *join(const char *s1, const char *s2)
 {
   size_t arr_size = strlen(s1) + strlen(s2) + 1;
-  char *s = (char *)malloc(arr_size);
+  char *s = malloc(arr_size);
   strncpy_n(s, s1, arr_size);
   strncat(s, s2, arr_size);
   last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
@@ -873,97 +897,46 @@ char *join(const char *s1, const char *s2)
 }
 
 /* Returns a string where all characters are lower case */
-char *strlwr(char *s)
-{
-  char *s2 = (char *)malloc(strlen(s) + 1);
-  for (int i = 0; i < strlen(s); i++)
-  {
-    s2[i] = tolower(s[i]);
-  }
-  s2[strlen(s)] = '\0';
-  return s2;
-}
 
-/* ? */
-// Pretty sure this inserts a char at a specified index
-char *InsertChar(char *str, char c, int pos)
-{
-  char *new_str = (char *)malloc(strlen(str) + 8); // For safety
-  if (!new_str)
-  {
-    last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-    return NULL;
-  }
-  strcpy(new_str, str);
-  memmove(new_str + pos + 1, str + pos, strlen(str) - (pos - 1));
-  new_str[strlen(new_str)] = '\0';
-  new_str[pos] = c;
 
-  return new_str;
-}
-
-/* ? */
-// Pretty sure this inserts a string at a specific index
+// Insert a string at a specific index
 char *InsertStr(char *s1, char *s2, int pos)
 {
-  char *new_str = (char *)malloc(strlen(s1) + 8); // For safety
+  size_t len1 = strlen(s1), len2 = strlen(s2);
+  char *new_str = calloc(len1 + len2 + 8, sizeof(char)); // For safety
   if (!new_str)
   {
     last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
     return NULL;
   }
-  strcpy(new_str, s1);
-  memmove(new_str + pos + strlen(s2), s1 + pos,
-          strlen(s1) - (pos - strlen(s2)));
+  memcpy(new_str, s1, len1);
+  memmove(new_str + pos + len2, s1 + pos, len1 - (pos - len2));
   new_str[strlen(new_str)] = '\0';
-  memcpy(new_str + pos, s2, strlen(s2));
-  last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
+  memcpy(new_str + pos, s2, len2);
 
   return new_str;
 }
 
-/* ? */
-// Pretty sure this deletes a char at a specific index
+// Insert a single character at a specific index
+char *InsertChar(char *str, char c, int pos)
+{
+  char s2[2] = {c, '\0'};
+  return InsertStr(str, s2, pos);
+}
+
+// Delete a char at a specified index
 char *DeleteChar(char *str, int pos)
 {
-  char *new_str = (char *)malloc(strlen(str));
-  if (!new_str)
+  size_t len = strlen(str);
+  if (len > pos)
   {
-    last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-    return NULL;
+    memmove(str + pos, str + pos + 1, len - pos);
+    str[strlen(str)] = '\0';
   }
-  int i;
-  for (i = 0; i < pos; i++)
-  {
-    new_str[i] = str[i];
-  }
-  for (i = pos; i < strlen(str) - 1; i++)
-  {
-    new_str[i] = str[i + 1];
-  }
-  new_str[i] = '\0';
-
-  return new_str;
+  return str;
 }
 
-/* ? */
-// Pretty sure this deletes the char to the left of the specified index
-char *DeleteCharLeft(char *str, int pos)
-{
-  char *new_str = (char *)malloc(strlen(str) + 1);
-  if (!new_str)
-  {
-    last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-    return NULL;
-  }
-  strcpy(new_str, str);
-  memmove(new_str + pos, str + pos + 1, strlen(str) - pos);
-  new_str[strlen(new_str)] = '\0';
-
-  return new_str;
-}
-
-/* ? */
+/* Insert a row */
 char *InsertRow(char **arr, int startpos, size_t arrsize, char *arrvalue)
 {
   for (int i = arrsize; i > startpos; i--)
@@ -975,7 +948,7 @@ char *InsertRow(char **arr, int startpos, size_t arrsize, char *arrvalue)
   return arr[startpos];
 }
 
-/* ? */
+/* Delete a row */
 char *DeleteRow(char **arr, int startpos, size_t arrsize)
 {
   for (int i = startpos; i < arrsize; i++)
@@ -1020,7 +993,7 @@ void UpdateRow(char *row)
 /* Replace all tabs with 8 spaces and return another string */
 char *RemoveTab(char *s)
 {
-  char *new_s = (char *)malloc(strlen(s) + 1);
+  char *new_s = malloc(strlen(s) + 1);
   if (!new_s)
   {
     last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
@@ -1036,7 +1009,7 @@ char *RemoveTab(char *s)
 /* ? */
 char *Substring(size_t start, size_t count, char *str)
 {
-  char *new_str = (char *)malloc(count + 1);
+  char *new_str = malloc(count + 1);
   memset(new_str, 0, count + 1);
   strncat(new_str, str + start, count);
   return new_str;
@@ -1046,7 +1019,7 @@ char *Substring(size_t start, size_t count, char *str)
 char *StringToJSON(char *s)
 {
   char *s2 =
-      (char *)malloc(strlen(s) * 2 + 100); // Allocate memory for the new string
+      malloc(strlen(s) * 2 + 100); // Allocate memory for the new string
   char squot = '\'', dquot = '"', brack = '{', brack2 = '}', comma = ',', colon,
        sqbr1 = '[', sqbr2 = ']';
   snprintf(s2, strlen(s) * 2 + 100, "%c%c%s%c%c%c ", brack, dquot, s, dquot,
@@ -1067,7 +1040,7 @@ int CheckKey(int keycode)
 /* Get absolute path to a file on the drive */
 char *FullPath(char *file)
 {
-  char *path = (char *)calloc(MAX_PATH, sizeof(char));
+  char *path = calloc(MAX_PATH, sizeof(char));
   realpath(file, path);
   return path;
 }
@@ -1075,7 +1048,7 @@ char *FullPath(char *file)
 /* Return a string representing the current date and time */
 char *GetTime(bool display_ms)
 {
-  char *time_buf = (char *)malloc(512);
+  char *time_buf = malloc(512);
   if (!time_buf)
   {
 
@@ -1155,7 +1128,7 @@ int getch_n()
 
 char *itoa_n(int n)
 {
-  char *s = (char *)malloc(DEFAULT_ALLOC_SIZE);
+  char *s = malloc(DEFAULT_ALLOC_SIZE);
 #ifdef _WIN32
   itoa(n, s, 10);
 #else
@@ -1191,7 +1164,7 @@ char *lltoa_n(long long n) // https://stackoverflow.com/a/18858248
 
 char *ProgInfo()
 {
-  char *info = (char *)malloc(1024);
+  char *info = malloc(1024);
 #ifdef _WIN32
   char lcl[] = " ";
 #else
@@ -1206,14 +1179,14 @@ int ValidSize()
 {
   if (XSIZE < 60 || YSIZE < 6) // Check for console size
   {
-#ifdef _WIN32
-    MessageBox(0, NEWTRODIT_ERROR_WINDOW_TOO_SMALL, "Newtrodit", 16);
-#else
 
-#endif
+    last_known_exception = NEWTRODIT_ERROR_WINDOW_TOO_SMALL;
+    WriteLogFile(NEWTRODIT_ERROR_WINDOW_TOO_SMALL);
+
+    PrintBottomString(NEWTRODIT_ERROR_WINDOW_TOO_SMALL);
+    getch_n();
     return 0;
   }
-  last_known_exception = NEWTRODIT_ERROR_WINDOW_TOO_SMALL;
   return 1;
 }
 
@@ -1222,6 +1195,7 @@ int YesNoPrompt()
   int chr = 0;
   while (1)
   {
+    printf("albion online");
     chr = getch_n();
 
     if (tolower(chr) == 'y')
@@ -1470,10 +1444,12 @@ int GetConsoleInfo(int type)
   }
   // Undocumented
   case CURSOR_SIZE:
-    return 0;
+    return 100;
   // Returns true or false depending on cursor visibility
   case CURSOR_VISIBLE:
-    return 0;
+    return 1;
+  default:
+    return 1;
   }
 }
 
@@ -1489,7 +1465,7 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->utf8 = generalUtf8Preference;
   for (int i = 0; i < tstack->bufy; i++)
   {
-    tstack->strsave[i] = (char *)calloc(tstack->bufx, sizeof(char));
+    tstack->strsave[i] = calloc(tstack->bufx, sizeof(char));
     tstack->tabcount[i] = (int *)calloc(1, sizeof(int));
     tstack->linesize[i] = (int *)calloc(1, sizeof(int));
     if (!tstack->strsave[i] || !tstack->tabcount[i])
@@ -1500,17 +1476,17 @@ int AllocateBufferMemory(File_info *tstack)
     }
   }
   tstack->Ustack = 0; // Initialize the undo stack
-  tstack->newline = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+  tstack->newline = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
   tstack->newline = strdup(DEFAULT_NL);
-  tstack->Compilerinfo.path = (char *)calloc(MAX_PATH, sizeof(char));
-  tstack->Compilerinfo.flags = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
-  tstack->Compilerinfo.output = (char *)calloc(MAX_PATH, sizeof(char));
+  tstack->Compilerinfo.path = calloc(MAX_PATH, sizeof(char));
+  tstack->Compilerinfo.flags = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+  tstack->Compilerinfo.output = calloc(MAX_PATH, sizeof(char));
   tstack->Compilerinfo.path = strdup(DEFAULT_COMPILER);
   tstack->Compilerinfo.flags = strdup(DEFAULT_COMPILER_FLAGS);
-  tstack->Syntaxinfo.syntax_lang = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
-  tstack->Syntaxinfo.syntax_file = (char *)calloc(MAX_PATH, sizeof(char));
-  tstack->Syntaxinfo.separators = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
-  tstack->Syntaxinfo.comments = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+  tstack->Syntaxinfo.syntax_lang = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+  tstack->Syntaxinfo.syntax_file = calloc(MAX_PATH, sizeof(char));
+  tstack->Syntaxinfo.separators = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+  tstack->Syntaxinfo.comments = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
   tstack->Syntaxinfo.syntax_lang = strdup(DEFAULT_SYNTAX_LANG);
   tstack->Syntaxinfo.syntax_file = (char *)"Default syntax highlighting";
   tstack->Syntaxinfo.separators = (char *)DEFAULT_SEPARATORS;
@@ -1528,7 +1504,7 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->Syntaxinfo.color = (int *)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(int));
   for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
   {
-    tstack->Syntaxinfo.keywords[i] = (char *)calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+    tstack->Syntaxinfo.keywords[i] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
     tstack->Syntaxinfo.keywords[i] = strdup(keywords[i].keyword);
     // tstack->Syntaxinfo.color[i] = (int*)calloc(1, sizeof(int));
     tstack->Syntaxinfo.color[i] = keywords[i].color;
@@ -1538,7 +1514,7 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->Syntaxinfo.parenthesis_pair_count = 0;
   tstack->Syntaxinfo.square_bracket_pair_count = 0;
   tstack->linecount_wide = LINECOUNT_WIDE;
-  tstack->filename = (char *)calloc(MAX_PATH, sizeof(char));
+  tstack->filename = calloc(MAX_PATH, sizeof(char));
   if (!tstack->filename)
   {
     WriteLogFile((char *)"Failed to allocate buffer memory");
@@ -1558,11 +1534,14 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->scrolled_x = false;
   tstack->scrolled_y = false;
   tstack->last_pos_scroll = 0;
-  tstack->topmost_display_y = 1;
+  tstack->last_dispy = 1;
+  tstack->last_y = 1;
   tstack->is_readonly = false;
   tstack->hFile = NULL; // Not used in linux
   // Initialize the file time structure
   tstack->fwrite_time = time(NULL);
-  WriteLogFile((char *)"Buffer memory successfully allocated");
+  tstack->language = DEFAULT_LANGUAGE;
+
+  WriteLogFile("Buffer memory successfully allocated");
   return 1;
 }

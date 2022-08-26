@@ -334,9 +334,8 @@ void print_line(char *line)
 	}
 }
 
-void ToggleOption(int *option, char *text, int reloadScreen)
+int ToggleOption(int *option, char *text, int reloadScreen)
 {
-	PrintBottomString(text);
 	*option = !*option;
 
 	if (reloadScreen)
@@ -346,13 +345,17 @@ void ToggleOption(int *option, char *text, int reloadScreen)
 	}
 
 	*option ? PrintBottomString(join(text, NEWTRODIT_DIALOG_ENABLED)) : PrintBottomString(join(text, NEWTRODIT_DIALOG_DISABLED));
+	return *option;
 }
 
-int DrawBox(int x, int y, int max_width, int height, int color, int margin)
+void RefreshLine(File_info *tstack, size_t line_num, size_t disp_y, bool clearLine)
 {
-	int old_color = GetConsoleInfo(COLOR);
-	SetColor(color);
-	ClearPartial(x - margin, y - margin, max_width + 2 * margin, height + 2 * margin);
-	SetColor(old_color);
-	return x - margin;
+	if(clearLine)
+	{
+		ClearPartial(lineCount ? Tab_stack[file_index].linecount_wide : 0, disp_y, XSIZE - lineCount ? Tab_stack[file_index].linecount_wide : 0, 1);
+	} else {
+		gotoxy(lineCount ? Tab_stack[file_index].linecount_wide : 0, disp_y);
+	}
+	
+	print_line(tstack->strsave[line_num]);
 }

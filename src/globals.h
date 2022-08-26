@@ -18,7 +18,7 @@
 */
 
 const char newtrodit_version[] = "0.6";
-const char newtrodit_build_date[] = "17/7/2022";
+const char newtrodit_build_date[] = "26/8/2022";
 const char newtrodit_repository[] = "https://github.com/anic17/Newtrodit";
 const char newtrodit_lcl_repository[] = "https://github.com/anic17/Newtrodit-LCL";
 char manual_file[MAX_PATH] = "newtrodit.man";
@@ -45,7 +45,7 @@ int cursorSizeInsert = true;
 int wrapLine = false;
 int autoIndent = true;
 int fullPathTitle = true;
-int useOldKeybinds = false; // Bool to use old keybinds (^X instead of ^Q, ^K instead of ^X)
+int useOldKeybindings = false; // Bool to use old keybinds (^X instead of ^Q, ^K instead of ^X)
 int longPositionDisplay = false;
 int generalUtf8Preference = false;
 int partialMouseSupport = true;     // Partial mouse support, only changes cursor position when mouse is clicked
@@ -106,6 +106,7 @@ char *run_macro, *last_known_exception;
 #define DEFAULT_CAPITAL_COLOR 0xc // Red
 #define DEFAULT_CAPITAL_MIN_LEN 3 // Highlight capital words 3 or more characters long
 #define DEFAULT_LINECOUNT_COLOR 0x80
+#define DEFAULT_LINECOUNT_HIGHLIGHT_COLOR 0xf0
 
 #define SEPARATORS DEFAULT_SEPARATORS
 
@@ -119,8 +120,10 @@ int num_color = DEFAULT_NUM_COLOR;
 int capital_color = DEFAULT_CAPITAL_COLOR;
 int capital_min_len = DEFAULT_CAPITAL_MIN_LEN;
 int linecount_color = DEFAULT_LINECOUNT_COLOR;
+int linecount_highlight_color = DEFAULT_LINECOUNT_HIGHLIGHT_COLOR;
 int capitalMinEnabled = true;
 int singleQuotes = false;
+int linecountHighlightLine = false;
 
 typedef struct keywords
 {
@@ -331,6 +334,7 @@ enum CONTROL_CODES
     CTRLENTER = 10,
     ENTER = 13,
     CTRLBS = 127,
+    ESC = 27,
 
     UP = 72,
     LEFT = 75,
@@ -346,6 +350,33 @@ enum CONTROL_CODES
     INS = 82,
     DEL = 83,
 
+    CTRLA = 1,
+    CTRLB = 2,
+    CTRLC = 3,
+    CTRLD = 4,
+    CTRLE = 5,
+    CTRLF = 6,
+    CTRLG = 7,
+    CTRLH = 8,
+    CTRLI = 9,
+    CTRLJ = 10,
+    CTRLK = 11,
+    CTRLL = 12,
+    CTRLM = 13,
+    CTRLN = 14,
+    CTRLO = 15,
+    CTRLP = 16,
+    CTRLQ = 17,
+    CTRLR = 18,
+    CTRLS = 19,
+    CTRLT = 20,
+    CTRLU = 21,
+    CTRLV = 22,
+    CTRLW = 23,
+    CTRLX = 24,
+    CTRLY = 25,
+    CTRLZ = 26,
+
     /* Different naming only happens in F11 and F12 */
     F1 = 59,
     F2 = 60,
@@ -360,6 +391,79 @@ enum CONTROL_CODES
 
     F11 = 133,
     F12 = 134,
+
+    CTRLF1 = 94,
+    CTRLF2 = 95,
+    CTRLF3 = 96,
+    CTRLF4 = 97,
+    CTRLF5 = 98,
+    CTRLF6 = 99,
+    CTRLF7 = 100,
+    CTRLF8 = 101,
+    CTRLF9 = 102,
+    CTRLF10 = 103,
+    CTRLF11 = 137,
+    CTRLF12 = 138,
+
+    ALTF1 = 104,
+    ALTF2 = 105,
+    ALTF3 = 106,
+    ALTF4 = 107,
+    ALTF5 = 108,
+    ALTF6 = 109,
+    ALTF7 = 110,
+    ALTF8 = 111,
+    ALTF9 = 112,
+    ALTF10 = 113,
+    ALTF11 = 139,
+    ALTF12 = 140,
+
+    ALTINS = 162,
+    ALTHOME = 151,
+    ALTPGUP = 153,
+    ALTDEL = 163,
+    ALTEND = 159,
+    ALTPGDW = 161,
+
+    SHIFTF1 = 84,
+    SHIFTF2 = 85,
+    SHIFTF3 = 86,
+    SHIFTF4 = 87,
+    SHIFTF5 = 88,
+    SHIFTF6 = 89,
+    SHIFTF7 = 90,
+    SHIFTF8 = 91,
+    SHIFTF9 = 92,
+    SHIFTF10 = 93,
+    SHIFTF11 = 135,
+    SHIFTF12 = 136,
+
+    CTRLALTA = 30,
+    CTRLALTB = 48,
+    CTRLALTC = 46,
+    CTRLALTD = 32,
+    CTRLALTE = 18, // This one actually reports as 63 because on my locale it's the euro symbol.
+    CTRLALTF = 33,
+    CTRLALTG = 34,
+    CTRLALTH = 35,
+    CTRLALTI = 23,
+    CTRLALTJ = 36,
+    CTRLALTK = 37,
+    CTRLALTL = 38,
+    CTRLALTM = 50,
+    CTRLALTN = 49,
+    CTRLALTO = 24,
+    CTRLALTP = 25,
+    CTRLALTQ = 16,
+    CTRLALTR = 19,
+    CTRLALTS = 31,
+    CTRLALTT = 20,
+    CTRLALTU = 22,
+    CTRLALTV = 47,
+    CTRLALTW = 17,
+    CTRLALTX = 45,
+    CTRLALTY = 21,
+    CTRLALTZ = 44,
 };
 #else
 {
@@ -368,6 +472,8 @@ enum CONTROL_CODES
     CTRLENTER = 10,
     ENTER = 13,
     CTRLBS = 8,
+
+    ESC = 27,
 
     /*
      Used an algorithm in order to encode and fit up to 7 characters into a single int32_t
@@ -398,6 +504,33 @@ enum CONTROL_CODES
     PGDW = 0xc01f9b00,
 
     SHIFTTAB = 0xc0002d00,
+
+    CTRLA = 1,
+    CTRLB = 2,
+    CTRLC = 3,
+    CTRLD = 4,
+    CTRLE = 5,
+    CTRLF = 6,
+    CTRLG = 7,
+    CTRLH = 8,
+    CTRLI = 9,
+    CTRLJ = 10,
+    CTRLK = 11,
+    CTRLL = 12,
+    CTRLM = 13,
+    CTRLN = 14,
+    CTRLO = 15,
+    CTRLP = 16,
+    CTRLQ = 17,
+    CTRLR = 18,
+    CTRLS = 19,
+    CTRLT = 20,
+    CTRLU = 21,
+    CTRLV = 22,
+    CTRLW = 23,
+    CTRLX = 24,
+    CTRLY = 25,
+    CTRLZ = 26,
 
     /* Different naming is used between F1 and F4 (termios-related things) */
     F1 = 0xa0002800,
@@ -562,7 +695,6 @@ enum CONTROL_CODES
     CTRLALTX = 0xa0060d80,
     CTRLALTY = 0xa0064d80,
     CTRLALTZ = 0xa0068d80,
-
 };
 #endif
 
@@ -572,6 +704,8 @@ typedef struct file_t
     char *display_name;
     size_t extcount;
 } file_t;
+
+#define DEFAULT_LANGUAGE "File"
 
 static file_t FileLang[] = {
     {"adb|ads", "Ada", 2},                                                       // Ada
@@ -591,7 +725,7 @@ static file_t FileLang[] = {
     {"e", "Eiffel", 1},                                                          // Eiffel
     {"el|elc|eln", "Emacs Lisp", 3},                                             // Emacs lisp
     {"elm", "Elm", 1},                                                           // ELM
-    {"erl|hrl", "Erlang", 2},                                                    // Erlang                                                     
+    {"erl|hrl", "Erlang", 2},                                                    // Erlang
     {"ex|exs", "Elixir", 2},                                                     // Elixir
     {"fs|fsi|fsx|fsscript", "F#", 4},                                            // F#
     {"git", "Git", 1},                                                           // Git (not sure if this is an actual file extension)
