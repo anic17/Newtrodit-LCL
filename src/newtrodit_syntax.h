@@ -32,9 +32,12 @@ int EmptySyntaxScheme(File_info *tstack)
 
     for (int i = 0; i < tstack->Syntaxinfo.keyword_count; ++i)
     {
+        printf("{%s:%d}\n", tstack->Syntaxinfo.keywords[i], strlen(tstack->Syntaxinfo.keywords[i]));
         memset(tstack->Syntaxinfo.keywords[i], 0, strlen(tstack->Syntaxinfo.keywords[i]));
-        keywords[i].color = 0;
+        tstack->Syntaxinfo.color[i] = 0;
     }
+    DEBUG
+
     return tstack->Syntaxinfo.keyword_count;
 }
 
@@ -50,16 +53,19 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
     char *tokchar = "=";
     char *iniptr;
     char comments[MAX_PATH] = ";\r\n";
-    int c = 0, highlight_color;
+    int c = 0;
     bool isNull = false;
     memset(syntax_language, 0, sizeof(char) * MAX_PATH);
-    bool hasComment = false, hasMagicNumber = false, hasLanguage = false;
-
+    bool hasMagicNumber = false, hasLanguage = false;
     while (fgets(read_syntax_buf, LINE_MAX, syntaxfp))
     {
         if (strcspn(read_syntax_buf, comments) == 0)
         {
             continue;
+        }
+        while (*read_syntax_buf == 32)
+        {
+            read_syntax_buf++;
         }
         read_syntax_buf[strcspn(read_syntax_buf, "\r\n")] = 0;
 
@@ -79,10 +85,12 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
                 }
             }
         }
-        if (!hasComment && !strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_COMMENT, strlen(NEWTRODIT_SYNTAX_COMMENT)))
+        if (!strncmp(read_syntax_buf, NEWTRODIT_SYNTAX_COMMENT, strlen(NEWTRODIT_SYNTAX_COMMENT))) // No 'hasComment' boolean because multiple comments can be defined
         {
-            hasComment = true;
-            comment[0].keyword = read_syntax_buf + strlen(NEWTRODIT_SYNTAX_COMMENT) + 1;
+
+            tstack->Syntaxinfo.comments = realloc(tstack->Syntaxinfo.keywords, sizeof(char *) * (tstack->Syntaxinfo.comment_color + 1));
+            tstack->Syntaxinfo.comments[tstack->Syntaxinfo.comment_color] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char)); // Allocate memory for the new comment
+            strncpy_n(tstack->Syntaxinfo.comments[tstack->Syntaxinfo.comment_color++], read_syntax_buf + strlen(NEWTRODIT_SYNTAX_COMMENT) + 1, strlen(read_syntax_buf + strlen(NEWTRODIT_SYNTAX_COMMENT) + 1));
 
             continue;
         }
@@ -168,25 +176,28 @@ int LoadSyntaxScheme(FILE *syntaxfp, char *syntax_fn, File_info *tstack)
             tstack->Syntaxinfo.keywords = (char **)realloc(tstack->Syntaxinfo.keywords, sizeof(char *) * (c + 1));
             tstack->Syntaxinfo.color = (int *)realloc(tstack->Syntaxinfo.color, sizeof(int) * (c + 1));
             tstack->Syntaxinfo.keywords[c] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char)); // Allocate memory for the new keyword
-            //tstack->Syntaxinfo.color[c] = (int)calloc(1, sizeof(int));
+            // tstack->Syntaxinfo.color[c] = (int)calloc(1, sizeof(int));
         }
-        tstack->Syntaxinfo.keywords[c] = strdup(iniptr);
+        if (iniptr)
+        {
+            tstack->Syntaxinfo.keywords[c] = strdup(iniptr);
 
-        // If strdup is not used, the value will be overwritten by the next strtok call
-        iniptr = strtok(NULL, tokchar);
-
-        highlight_color = HexStrToDec(iniptr);
-        tstack->Syntaxinfo.color[c] = abs(highlight_color) % 16; // Range from 0 to 15
-        WriteLogFile(join(
-            join(
+            // If strdup is not used, the value will be overwritten by the next strtok call
+            iniptr = strtok(NULL, tokchar);
+            printf("'%s':'%s':%d:{%d}\n", tstack->Syntaxinfo.keywords[c], iniptr, c, strlen(tstack->Syntaxinfo.keywords[c]));
+            tstack->Syntaxinfo.color[c] = (int)strtol(iniptr, NULL, 16) % 16; // Range from 0 to 15
+            WriteLogFile(join(
                 join(
-                    "Keyword: ",
-                    tstack->Syntaxinfo.keywords[c]),
+                    join(
+                        "Keyword: ",
+                        tstack->Syntaxinfo.keywords[c]),
 
-                ", color: "),
-            itoa_n(tstack->Syntaxinfo.color[c])));
-        c++;
-        isNull = false;
+                    ", color: "),
+                itoa_n(tstack->Syntaxinfo.color[c])));
+            c++;        isNull = false;
+
+        }
+
         /* if (c > (sizeof(keywords) / sizeof(keywords[0])))
         {
             PrintBottomString(NEWTRODIT_WARNING_SYNTAX_TOO_BIG);
@@ -214,14 +225,15 @@ void color_line(char *line, int startpos, int override_color)
         override_color = 0; // Default color
     }
     // Color a specific line
-    int tab_count = 0, keyword_len = 0, skipChars = 0, find_pos; // Always initialize variables to 0 to avoid undefined behavior (= crash)
+    int keyword_len = 0, skipChars = 0; // Always initialize variables to 0 to avoid undefined behavior (= crash)
 
     char quotechar;
     if (!Tab_stack[file_index].Syntaxinfo.multi_line_comment)
     {
         SetColor(Tab_stack[file_index].Syntaxinfo.default_color);
     }
-    int internal_bps_count = Tab_stack[file_index].Syntaxinfo.bracket_pair_count; // Used to count the number of brackets in a string
+    SetDisplayY(&Tab_stack[file_index]);
+    // int internal_bps_count = Tab_stack[file_index].Syntaxinfo.bracket_pair_count; // Used to count the number of brackets in a string
     size_t len = strlen(line);
     // This causes visual bugs
     // SetCharColor(wrapSize, Tab_stack[file_index].Syntaxinfo.default_color, lineCount ? (Tab_stack[file_index].linecount_wide - 1) : 0, GetConsoleInfo(YCURSOR));
@@ -237,7 +249,7 @@ void color_line(char *line, int startpos, int override_color)
 
         if (i < wrapSize)
         {
-            while(i < len && i < wrapSize && line[i] != '\0' && isspace(line[i]))
+            while (i < len && i < wrapSize && line[i] != '\0' && isspace(line[i]))
             {
                 ++i;
             }
@@ -340,12 +352,15 @@ void color_line(char *line, int startpos, int override_color)
                     }
                 }
             }
-            if (!memcmp(line + i, comment[0].keyword, strlen(comment[0].keyword)))
+            for (size_t k = 0; k < Tab_stack[file_index].Syntaxinfo.comment_count; k++)
             {
-                
-                SetCharColor((len > wrapSize) ? (wrapSize - i) : (len - i), Tab_stack[file_index].Syntaxinfo.comment_color + (16 * override_color), (lineCount ? Tab_stack[file_index].linecount_wide : 0) + i, GetConsoleInfo(YCURSOR));
-                SetColor(Tab_stack[file_index].Syntaxinfo.default_color + (16 * override_color));
-                return;
+                if (!memcmp(line + i, Tab_stack[file_index].Syntaxinfo.comments[k], strlen(Tab_stack[file_index].Syntaxinfo.comments[k])))
+                {
+
+                    SetCharColor((len > wrapSize) ? (wrapSize - i) : (len - i), Tab_stack[file_index].Syntaxinfo.comment_color + (16 * override_color), (lineCount ? Tab_stack[file_index].linecount_wide : 0) + i, GetConsoleInfo(YCURSOR));
+                    SetColor(Tab_stack[file_index].Syntaxinfo.default_color + (16 * override_color));
+                    return;
+                }
             }
 
             if ((line[i] == '\"' || (line[i] == '\'' && singleQuotes)) && !Tab_stack[file_index].Syntaxinfo.multi_line_comment)

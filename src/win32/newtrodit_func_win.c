@@ -53,6 +53,21 @@ int CountBufferLines(File_info *tstack)
 	return lines;
 }
 
+void LineCountHighlight(File_info *tstack)
+{
+	if (linecountHighlightLine)
+	{
+
+		ClearPartial(0, tstack->last_dispy, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
+
+		printf("%d", tstack->last_y);
+
+		tstack->last_dispy = tstack->display_y;
+		tstack->last_y = tstack->ypos;
+		SetColor(linecount_highlight_color);
+	}
+}
+
 void DisplayLineCount(File_info *tstack, int size, int disp)
 {
 	if (lineCount)
@@ -69,17 +84,7 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 		}
 		SetColor(linecount_color);
 
-		if (linecountHighlightLine)
-		{
-
-			ClearPartial(0, tstack->last_dispy, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
-
-			printf("%d", tstack->last_y);
-
-			tstack->last_dispy = tstack->display_y;
-			tstack->last_y = tstack->ypos;
-			SetColor(linecount_highlight_color);
-		}
+		LineCountHighlight(tstack);
 		ClearPartial(0, disp, (lineCount ? (tstack->linecount_wide) : 0) - 1, 1);
 
 		printf("%d", tstack->ypos);
@@ -90,18 +95,21 @@ void DisplayLineCount(File_info *tstack, int size, int disp)
 HANDLE OpenFileHandle(File_info *tstack, char *filename)
 {
 	HANDLE hFileTmp;
-	hFileTmp = CreateFile(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	hFileTmp = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if (hFileTmp == INVALID_HANDLE_VALUE)
 	{
+		WriteLogFile(GetErrorDescription(GetLastError()));
 		last_known_exception = NEWTRODIT_FS_FILE_NOT_FOUND;
+		tstack->hFile = NULL;
 		return 0;
 	}
+	tstack->hFile = hFileTmp;
+
 	GetFileTime(tstack->hFile, &tstack->fread_time, NULL, &tstack->fwrite_time); // Get the last write time of the file
-	if (GetFileAttributes(tstack->filename) & FILE_ATTRIBUTE_READONLY)
+	if (GetFileAttributes(filename) & FILE_ATTRIBUTE_READONLY)
 	{
 		tstack->is_readonly = true;
 	}
-	tstack->hFile = hFileTmp;
 	return tstack->hFile;
 }
 
@@ -116,7 +124,7 @@ void LoadLineCount(File_info *tstack, int startpos, int starty)
 		// Algorithm tested successfully with 5 and 7 giving the best performance results.
 		int skipamount = 5;
 		(n > 45) ? (skipamount = 7) : (skipamount = 5);
-		char *print_line = calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide + 1) * n), *tempbuf = calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide));
+		char *print_line = calloc(sizeof(char), DEFAULT_ALLOC_SIZE + (tstack->linecount_wide + 1) * n);
 
 		if (tstack->ypos >= (n - 2))
 		{
@@ -152,6 +160,7 @@ void LoadLineCount(File_info *tstack, int startpos, int starty)
 			snprintf(print_line, DEFAULT_ALLOC_SIZE + (tstack->linecount_wide + 1) * n, "%s%d\n", print_line, startpos + i);
 		}
 		fwrite(print_line, sizeof(char), strlen(print_line), stdout);
+
 		free(print_line);
 		SetColor(bg_color);
 	}
@@ -277,7 +286,7 @@ int ValidString(char *str)
 
 int SaveFile(File_info *tstack)
 {
-	char *tmp_filename = malloc(sizeof(char) * MAX_PATH);
+	char *tmp_filename = calloc(MAX_PATH, sizeof(char));
 	if (tstack->is_untitled)
 	{
 		PrintBottomString(NEWTRODIT_PROMPT_SAVE_FILE);
@@ -301,6 +310,7 @@ int SaveFile(File_info *tstack)
 			LoadAllNewtrodit();
 			DisplayFileContent(tstack, stdout, 0);
 			PrintBottomString(join(NEWTRODIT_FS_FILE_INVALID_NAME, tmp_filename));
+			WriteLogFile(join(NEWTRODIT_FS_FILE_TOO_LARGE, tmp_filename));
 			last_known_exception = NEWTRODIT_FS_FILE_INVALID_NAME;
 
 			getch_n();
@@ -315,15 +325,12 @@ int SaveFile(File_info *tstack)
 			if (!YesNoPrompt())
 			{
 				ShowBottomMenu();
-				DisplayCursorPos(tstack->xpos, tstack->ypos);
+				DisplayCursorPos(tstack);
 				return 0;
 			}
 		}
 		tstack->filename = strdup(tmp_filename);
 	}
-
-	FILE *fp = fopen(tstack->filename, "wb");
-
 	if (GetFileAttributes(tmp_filename) & FILE_ATTRIBUTE_READONLY)
 	{
 		LoadAllNewtrodit();
@@ -331,28 +338,43 @@ int SaveFile(File_info *tstack)
 		PrintBottomString(NEWTRODIT_FS_READONLY_SAVE);
 		getch_n();
 		ShowBottomMenu();
-		DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
+		DisplayCursorPos(&Tab_stack[file_index]);
+		free(tmp_filename);
+
 		return 0;
 	}
 
-	WriteBuffer(fp, tstack);
+	FILE *fp = fopen(tmp_filename, "wb");
 
-	LoadAllNewtrodit();
-	DisplayFileContent(tstack, stdout, 0);
-
-	if (fp)
+	if (WriteBuffer(fp, tstack)) // Write the file content
 	{
+		tstack->is_saved = true;
 		tstack->is_modified = false;
 		tstack->is_untitled = false;
-		tstack->is_saved = true;
+
+		UpdateTitle(tstack);
+		tstack->filename = strdup(tmp_filename);
+		NewtroditNameLoad();
+		DisplayTabIndex(tstack);
+		CenterText(StrLastTok(tstack->filename, PATHTOKENS), 0);
+
+		RightAlignNewline();
+		DisplayTabIndex(tstack);
+
 		PrintBottomString(NEWTRODIT_FILE_SAVED);
+		WriteLogFile(join(NEWTRODIT_FILE_WROTE_BUFFER, tstack->filename));
+
+		c = -2;
 	}
 	else
 	{
 		PrintBottomString(NEWTRODIT_FS_FILE_SAVE_ERR);
-		last_known_exception = NEWTRODIT_FS_FILE_SAVE_ERR;
+		WriteLogFile(NEWTRODIT_FS_FILE_SAVE_ERR);
+
+		getch_n();
 	}
 	fclose(fp);
+	free(tmp_filename);
 
 	getch_n();
 	ShowBottomMenu();
@@ -360,35 +382,40 @@ int SaveFile(File_info *tstack)
 	return 1;
 }
 
-char *extension_filetype(File_info *tstack)
+char *extension_filetype(char *filename)
 {
-	char *extension = DEFAULT_LANGUAGE;
+	char *extension = "File";
 	char *ptr;
-	if (!strpbrk(tstack->filename, "."))
+	if (!strpbrk(filename, "."))
 	{
 		return extension;
 	}
-	extension = StrLastTok(Tab_stack[file_index].filename, ".");
-	for (int i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
+	extension = StrLastTok(Tab_stack[file_index].filename, "."); // Get the file extension
+	for (size_t i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
 	{
 		for (size_t k = 0; k < FileLang[i].extcount; k++)
 		{
 
-			ptr = strtok(FileLang[i].extensions, "|");
+			ptr = strtok_n(FileLang[i].extensions, "|");
+			if (FileLang[i].extcount == 1)
+			{
+				ptr = FileLang[i].extensions;
+			}
 			while (ptr != NULL)
 			{
+
 				if (!strcmp(extension, ptr))
 				{
-					tstack->language = FileLang[i].display_name;
-					return tstack->language;
+					return FileLang[i].display_name;
 				}
-				ptr = strtok(NULL, "|");
+
+				ptr = strtok_n(ptr, "|");
 			}
 		}
 	}
-	tstack->language = "Unknown file type";
-	return tstack->language;
+	return (char *)"Unknown file type";
 }
+
 int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 {
 	WriteLogFile(join("Loading file: ", filename));
@@ -434,7 +461,6 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	BUFFER_X = DEFAULT_BUFFER_X;
 
 	char *allocate_buf;
-	int remove_cr = 0;
 	int chr = 0, read_x = 0, read_y = 1;
 	size_t mb_conv_len;
 
@@ -489,12 +515,10 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 				}
 			}
 
-			if (chr == 0)
+			if (convertNull && !chr)
 			{
-				if (convertNull)
-				{
-					chr = 32;
-				}
+
+				chr = 32;
 			}
 			if (chr == 13 && strncmp(tstack->newline, "\r\n", strlen(tstack->newline)))
 			{
@@ -514,10 +538,8 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 				{
 					if (convertTabtoSpaces) // Convert tab to spaces
 					{
-						for (int i = 0; i < TAB_WIDE; i++) // TAB_CHANGE: Change this in a future
-						{
-							tstack->strsave[read_y][read_x++] = ' ';
-						}
+						memset(tstack->strsave[read_y] + read_x, 32, TAB_WIDE);
+						read_x += TAB_WIDE;
 					}
 					else
 					{
@@ -577,14 +599,9 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	tstack->is_saved = true;
 	tstack->is_modified = false;
 	tstack->is_readonly = false; // We'll check if it's read-only later
-	extension_filetype(tstack);
-	tstack->hFile = CreateFile(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // Open a handle to the file
-	if (tstack->hFile == INVALID_HANDLE_VALUE)
-	{
-		// WriteLogFile(join(join(join(join("Error opening file handle: ", filename), "(0x"), itoa(GetLastError(), NULL, 16)), ")"));
-	}
-	OpenFileHandle(tstack->hFile, filename);
-	GetFileTime(tstack->hFile, &tstack->fread_time, NULL, &tstack->fwrite_time); // Get the last write time of the file
+	tstack->language = extension_filetype(tstack->filename);
+	OpenFileHandle(tstack, tstack->filename);
+
 	if (GetFileAttributes(tstack->filename) & FILE_ATTRIBUTE_READONLY)
 	{
 		PrintBottomString(NEWTRODIT_WARNING_READONLY_FILE);
@@ -609,8 +626,6 @@ int NewFile(File_info *tstack) // ^N = New file
 
 				memmove((void *)&tstack[i + 1], (void *)&tstack[i], sizeof tstack[i]);
 			}
-			/* {
-			} */
 		}
 		file_index = open_files;
 		tstack++;
@@ -632,10 +647,8 @@ int NewFile(File_info *tstack) // ^N = New file
 
 		return -ENOMEM;
 	}
-	printf("%d", tstack->linecount_wide);
-	getch_n();
 	LoadAllNewtrodit();
-	DisplayCursorPos(tstack->xpos, tstack->ypos);
+	DisplayCursorPos(tstack);
 	UpdateTitle(tstack);
 
 	gotoxy(tstack->xpos + (lineCount ? (tstack->linecount_wide) : 0), tstack->ypos);
@@ -654,8 +667,6 @@ int CloseFile(File_info *tstack)
 		}
 		tstack->is_modified = false;
 	}
-	File_info *tmp;
-	tmp = tstack;
 	if (open_files > 1)
 	{
 		for (int i = file_index; i < open_files; i++)
@@ -705,7 +716,7 @@ void ReloadFile(File_info *tstack, FILE *fstream)
 	PrintBottomString(NEWTRODIT_FILE_RELOADED);
 	getch_n();
 	ShowBottomMenu();
-	DisplayCursorPos(tstack->xpos, tstack->ypos);
+	DisplayCursorPos(tstack);
 	return;
 }
 
@@ -737,7 +748,7 @@ int UpdateHomeScrolledScreen(File_info *tstack)
 	if (tstack->ypos >= (YSIZE - 3))
 	{
 		tstack->ypos = 1;
-		ClearPartial(0, 1, XSIZE, YSIZE - 2);
+		ClearPartial(lineCount ? (tstack->linecount_wide) : 0, 1, XSIZE - lineCount ? (tstack->linecount_wide) : 0, YSIZE - 2);
 		DisplayFileContent(tstack, stdout, 0);
 		c = -32; // -32 means that the screen has been scrolled
 		return 1;
@@ -769,7 +780,6 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 	int chr = 0, index = 0;
 	char *num_str = calloc(max_len + 1, sizeof(char));
-	char *ptr;
 	int startx = GetConsoleInfo(XCURSOR), starty = GetConsoleInfo(YCURSOR), orig_cursize = GetConsoleInfo(CURSOR_SIZE);
 	bool overwrite_mode = false;
 
@@ -854,8 +864,6 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 				fputs(num_str, stdout);
 				gotoxy(startx + index, starty);
 			}
-
-			WriteLogFile(num_str);
 		}
 		else
 		{
@@ -869,26 +877,37 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 	return num_str;
 }
 
-int AutoIndent(File_info *tstack, int yps, int *xps)
+int AutoIndent(File_info *tstack)
 {
 	if (autoIndent)
 	{
-		if (yps < 2 || yps >= BUFFER_X)
+		int tablen = strspn(tstack->strsave[tstack->ypos - 1], convertTabtoSpaces ? " " : "\t");
+		tablen -= tablen % TAB_WIDE; // Make it a multiple of TAB_WIDE
+		size_t increment_tab = tablen / (convertTabtoSpaces ? 1 : TAB_WIDE);
+
+		size_t linelen = 0;
+		char *tmpbuf = NULL;
+		if (tstack->strsave[tstack->ypos][0] != '\0')
 		{
-			return -1; // Too big
+			linelen = strlen(tstack->strsave[tstack->ypos]);
+			tmpbuf = calloc(sizeof(char), linelen + 1);
+			memcpy(tmpbuf, tstack->strsave[tstack->ypos], linelen);
 		}
-		if (convertTabtoSpaces)
+		char *tab_buf = calloc(sizeof(char), increment_tab);
+		memset(tab_buf, convertTabtoSpaces ? ' ' : '\t', increment_tab);
+		memcpy(tstack->strsave[tstack->ypos], tab_buf, increment_tab);
+		memcpy(tstack->strsave[tstack->ypos] + increment_tab, tmpbuf, linelen);
+		if (tmpbuf)
 		{
-			if (!strncmp(tstack->strsave[yps - 1], PrintTab(TAB_WIDE), TAB_WIDE))
-			{
-				strncpy_n(tstack->strsave[yps], tstack->newline, strlen(tstack->newline));
-				*xps = TAB_WIDE;
-				return 1;
-			}
+			free(tmpbuf);
 		}
-		return 0;
+		free(tab_buf);
+		SetDisplayY(tstack);
+		RefreshLine(tstack, tstack->ypos, tstack->display_y, true);
+
+		return increment_tab;
 	}
-	return -2;
+	return 0;
 }
 
 signed long long FileCompare(char *file1, char *file2) // Compare files up to 8 EB in size
@@ -1022,11 +1041,11 @@ int LocateFiles(bool show_dir, char *file, int startpos)
 					{
 
 						// Time format is "DD/MM/YYYY hh:mm:ss"
-						printf(" %02d/%02d/%04d %02d:%02d:%02d\t<DIR>\t%14lu\t%.*s\n", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, (FindFileData.nFileSizeHigh * (MAXDWORD + 1)) + FindFileData.nFileSizeLow, max_print, FindFileData.cFileName);
+						printf(" %02d/%02d/%04d %02d:%02d:%02d\t<DIR>\t%14lu\t%.*s\n", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, FindFileData.nFileSizeLow, max_print, FindFileData.cFileName);
 					}
 					else
 					{
-						printf(" %02d/%02d/%04d %02d:%02d:%02d\t\t%14lu\t%.*s\n", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, (FindFileData.nFileSizeHigh * (MAXDWORD + 1)) + FindFileData.nFileSizeLow, max_print, FindFileData.cFileName);
+						printf(" %02d/%02d/%04d %02d:%02d:%02d\t\t%14lu\t%.*s\n", st.wDay, st.wMonth, st.wYear, st.wHour, st.wMinute, st.wSecond, FindFileData.nFileSizeLow, max_print, FindFileData.cFileName);
 					}
 					n++;
 				}
@@ -1058,7 +1077,7 @@ int ReturnFindIndex(int insensitive, char *str, char *find)
 	int find_string_index = -1;
 	if (insensitive)
 	{
-		find_string_index = FindString(strlwr(str), strlwr(strdup(find)));
+		find_string_index = FindString(strlwr(strdup(str)), strlwr(strdup(find)));
 	}
 	else
 	{
@@ -1127,7 +1146,7 @@ void SetDisplayCursorPos(File_info *tstack)
 	}
 }
 
-int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char **matching)
+/* int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char **matching)
 {
 	char **matching_tmp = (char **)calloc(sizeof(char *), keywords_len);
 
@@ -1136,7 +1155,7 @@ int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char *
 		matching_tmp[i] = calloc(keywords_len, sizeof(char)); // Allocate memory for the matching strings
 	}
 	// Use Levenshtein distance to find the matching strings
-}
+} */
 
 void ErrorExit(char *s)
 {
@@ -1155,23 +1174,14 @@ DWORD GetKeyboardCurrentState(SHORT *keybd_layout) // Not to be confused with Wi
 	return 1;
 }
 
-DWORD _InitKeyboardMap()
-{
-	for (int i = 0; i < 256; i++)
-	{
-		GetAsyncKeyState(i);
-	}
-}
-
 int GetNewtroditInput(File_info *tstack)
 {
 	HANDLE hStdin, hStdout;
-	DWORD fdwSaveOldMode;
-	DWORD cNumRead, fdwMode, i;
+	DWORD cNumRead, fdwSaveOldMode;
 	INPUT_RECORD irInBuffer;
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
-	SHORT *keybd_layout_ptr, *keybd_layout_ptr2;
-	bool ignore_next_key = false, is_altnum = false;
+	SHORT *keybd_layout_ptr = {0}, *keybd_layout_ptr2 = {0};
+	bool ignore_next_key = false;
 	COORD oldSize = {0}, newSize = {0};
 	// Get the standard input handle.
 
@@ -1257,12 +1267,8 @@ int GetNewtroditInput(File_info *tstack)
 		}
 	}
 	GetConsoleMode(hStdin, &fdwSaveOldMode);
-	WriteLogFile(itoa_n(fdwSaveOldMode));
 	SetConsoleMode(hStdin, ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT | (fdwSaveOldMode & 0x40)); // Only enable these 2 modes
 
-	size_t press_count = 0, release_count = 0;
-
-	//_InitKeyboardMap();
 	while (1)
 	{
 		if (partialMouseSupport)
@@ -1364,13 +1370,11 @@ int GetNewtroditInput(File_info *tstack)
 						oldSize.X = newSize.X;
 						oldSize.X = newSize.Y; // Routine to resize the console window and adapt the current screen buffer size to the new console size.
 					}
-					WriteLogFile(join(join(join("Resized the console window: ", itoa_n(newSize.X)), "x"), itoa_n(newSize.Y)));
-					// printf("Console size changed from %dx%d to %dx%d\n", old_x_size, old_y_size, new_x_size, new_y_size);
 					clearAllBuffer = true;
 					LoadAllNewtrodit();
 					clearAllBuffer = false;
 					DisplayFileContent(&Tab_stack[file_index], stdout, 0);
-					DisplayCursorPos(Tab_stack[file_index].xpos, Tab_stack[file_index].ypos);
+					DisplayCursorPos(&Tab_stack[file_index]);
 
 					SetDisplayY(&Tab_stack[file_index]);
 					SetDisplayCursorPos(&Tab_stack[file_index]);
@@ -1398,7 +1402,7 @@ int GetNewtroditInput(File_info *tstack)
 								tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 							}
 							UpdateScrolledScreen(tstack);
-							DisplayCursorPos(tstack->xpos, tstack->ypos);
+							DisplayCursorPos(tstack);
 							SetDisplayY(tstack);
 							SetDisplayCursorPos(tstack);
 						}
@@ -1417,9 +1421,10 @@ int GetNewtroditInput(File_info *tstack)
 								tstack->last_pos_scroll = -1; // End of line
 								tstack->xpos = NoLfLen(tstack->strsave[tstack->ypos]);
 							}
-							DisplayCursorPos(tstack->xpos, tstack->ypos);
-							SetDisplayY(tstack);
 							UpdateScrolledScreen(tstack);
+
+							DisplayCursorPos(tstack);
+							SetDisplayY(tstack);
 
 							SetDisplayCursorPos(tstack);
 						}
@@ -1445,7 +1450,7 @@ int GetNewtroditInput(File_info *tstack)
 						{
 							RedrawScrolledScreen(tstack, tstack->ypos);
 						}
-						DisplayCursorPos(tstack->xpos, tstack->ypos);
+						DisplayCursorPos(tstack);
 						SetDisplayY(tstack);
 						SetDisplayCursorPos(tstack);
 					}
@@ -1457,4 +1462,48 @@ int GetNewtroditInput(File_info *tstack)
 	}
 
 	return 0;
+}
+
+int IsWholeWord(char *str, char *word, char *delims)
+{
+    if (!memcmp(str, word, strlen(str)))
+    {
+        return 1;
+    }
+    char *ptr = strstr(str, word);
+    if (!ptr)
+    {
+        return -1;
+    }
+    size_t wordindex = ptr - str;
+    int isBeginning = 0, isEnd = 0;
+
+    if (!wordindex)
+    {
+        isBeginning = 1;
+    }
+    else if (!memcmp(ptr, word, strlen(ptr)))
+    {
+        isEnd = 1;
+    }
+    int beginningWhole = 0, endWhole = 0;
+    for (int k = 0; k < strlen(delims); k++)
+    {
+
+        if (!isBeginning && str[wordindex - 1] == delims[k])
+        {
+            beginningWhole = 1;
+        }
+
+        if (!isEnd && ptr[strlen(word)] == delims[k])
+        {
+            endWhole = 1;
+        }
+
+        if ((beginningWhole && (endWhole || isEnd)) || (endWhole && (isBeginning || beginningWhole)))
+        {
+            return 1;
+        }
+    }
+    return 0;
 }

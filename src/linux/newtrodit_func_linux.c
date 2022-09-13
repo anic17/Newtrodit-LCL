@@ -328,6 +328,40 @@ int SaveFile(File_info *tstack)
 	return 1;
 }
 
+char *extension_filetype(char *filename)
+{
+	char *extension = "File";
+	char *ptr;
+	if (!strpbrk(filename, "."))
+	{
+		return extension;
+	}
+	extension = StrLastTok(Tab_stack[file_index].filename, "."); // Get the file extension
+	for (size_t i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
+	{
+		for (size_t k = 0; k < FileLang[i].extcount; k++)
+		{
+
+			ptr = strtok_n(FileLang[i].extensions, "|");
+			if (FileLang[i].extcount == 1)
+			{
+				ptr = FileLang[i].extensions;
+			}
+			while (ptr != NULL)
+			{
+
+				if (!strcmp(extension, ptr))
+				{
+					return FileLang[i].display_name;
+				}
+
+				ptr = strtok_n(ptr, "|");
+			}
+		}
+	}
+	return (char *)"Unknown file type";
+}
+
 int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 {
 	WriteLogFile(join("Loading file: ", filename));
@@ -373,7 +407,6 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	BUFFER_X = DEFAULT_BUFFER_X;
 
 	char *allocate_buf;
-	int remove_cr = 0;
 	int chr = 0, read_x = 0, read_y = 1;
 	size_t mb_conv_len;
 
@@ -516,32 +549,18 @@ int LoadFile(File_info *tstack, char *filename, FILE *fpread)
 	tstack->is_saved = true;
 	tstack->is_modified = false;
 	tstack->is_readonly = false; // We'll check if it's read-only later
+	tstack->language = extension_filetype(tstack->filename);
 
-#ifdef _WIN32
-	tstack->hFile = CreateFile(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL); // Open a handle to the file
-	if (tstack->hFile == INVALID_HANDLE_VALUE)
-	{
-		last_known_exception = NEWTRODIT_FS_FILE_NOT_FOUND;
-		// WriteLogFile(join(join(join(join("Error opening file handle: ", filename), "(0x"), itoa(GetLastError(), NULL, 16)), ")"));
-	}
-	GetFileTime(tstack->hFile, &tstack->fread_time, NULL, &tstack->fwrite_time); // Get the last write time of the file
-	if (GetFileAttributes(tstack->filename) & FILE_ATTRIBUTE_READONLY)
-	{
-		PrintBottomString(NEWTRODIT_WARNING_READONLY_FILE);
-		tstack->is_readonly = true;
-		c = -2;
-	}
-#else
 	// Get last write time of a file
 	struct stat attr;
-	stat(filename, &attr);
+	stat(tstack->filename, &attr);
 	// TODO: Check if the file was successfully opened
 	tstack->fread_time = attr.st_mtime;
 	tstack->fwrite_time = attr.st_mtime;
 	// TODO: Check if a file is readonly
-#endif
+
 	fclose(fpread);
-	WriteLogFile(join("Successfully loaded the file ", filename));
+	WriteLogFile(join("Successfully loaded the file ", tstack->filename));
 
 	return 1;
 }
@@ -582,7 +601,7 @@ int NewFile(File_info *tstack) // ^N = New file
 		return -ENOMEM;
 	}
 	LoadAllNewtrodit();
-	DisplayCursorPos(tstack->xpos, tstack->ypos);
+	DisplayCursorPos(tstack);
 	SetDisplayCursorPos(tstack);
 	UpdateTitle(tstack);
 
@@ -600,8 +619,7 @@ int CloseFile(File_info *tstack)
 		}
 		tstack->is_modified = false;
 	}
-	File_info *tmp;
-	tmp = tstack;
+
 	if (open_files > 1)
 	{
 		for (int i = file_index; i < open_files; i++)
@@ -651,7 +669,7 @@ void ReloadFile(File_info *tstack, FILE *fstream)
 	PrintBottomString(NEWTRODIT_FILE_RELOADED);
 	getch_n();
 	ShowBottomMenu();
-	DisplayCursorPos(tstack->xpos, tstack->ypos);
+	DisplayCursorPos(tstack);
 	return;
 }
 
@@ -694,7 +712,6 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 	int chr = 0, index = 0;
 	char *num_str = calloc(max_len + 1, sizeof(char));
-	char *ptr;
 	int startx = GetConsoleInfo(XCURSOR), starty = GetConsoleInfo(YCURSOR), orig_cursize = GetConsoleInfo(CURSOR_SIZE);
 	bool overwrite_mode = false;
 
@@ -794,26 +811,37 @@ char *TypingFunction(int min_ascii, int max_ascii, int max_len)
 	return num_str;
 }
 
-int AutoIndent(File_info *tstack, int yps, int *xps)
+int AutoIndent(File_info *tstack)
 {
 	if (autoIndent)
 	{
-		if (yps < 2 || yps >= BUFFER_X)
+		int tablen = strspn(tstack->strsave[tstack->ypos - 1], convertTabtoSpaces ? " " : "\t");
+		tablen -= tablen % TAB_WIDE; // Make it a multiple of TAB_WIDE
+		size_t increment_tab = tablen / (convertTabtoSpaces ? 1 : TAB_WIDE);
+
+		size_t linelen = 0;
+		char *tmpbuf = NULL;
+		if (tstack->strsave[tstack->ypos][0] != '\0')
 		{
-			return -1; // Too big
+			linelen = strlen(tstack->strsave[tstack->ypos]);
+			tmpbuf = calloc(sizeof(char), linelen + 1);
+			memcpy(tmpbuf, tstack->strsave[tstack->ypos], linelen);
 		}
-		if (convertTabtoSpaces)
+		char *tab_buf = calloc(sizeof(char), increment_tab);
+		memset(tab_buf, convertTabtoSpaces ? ' ' : '\t', increment_tab);
+		memcpy(tstack->strsave[tstack->ypos], tab_buf, increment_tab);
+		memcpy(tstack->strsave[tstack->ypos] + increment_tab, tmpbuf, linelen);
+		if (tmpbuf)
 		{
-			if (!strncmp(tstack->strsave[yps - 1], PrintTab(TAB_WIDE), TAB_WIDE))
-			{
-				strncpy_n(tstack->strsave[yps], tstack->newline, strlen(tstack->newline));
-				*xps = TAB_WIDE;
-				return 1;
-			}
+			free(tmpbuf);
 		}
-		return 0;
+		free(tab_buf);
+		SetDisplayY(tstack);
+		RefreshLine(tstack, tstack->ypos, tstack->display_y, true);
+
+		return increment_tab;
 	}
-	return -2;
+	return 0;
 }
 
 signed long long FileCompare(char *file1, char *file2) // Compare files up to 8 EB in size
@@ -1021,35 +1049,33 @@ int SetDisplayY(File_info *tstack)
 	return tstack->display_y;
 }
 
-int SetYFromDisplayY(File_info *tstack, int disp_y, int *current_y, int *current_disp)
+int SetYFromDisplayY(File_info *tstack, int disp_y) // This function is actually unused for the Linux version (for now)
 {
 	// Get the line number from the display line number
 	int return_y = 0;
-	if (disp_y > tstack->display_y)
+	if (tstack->scrolled_y)
 	{
-		return_y = disp_y + (*current_y - *current_disp);
+
+		return_y = tstack->ypos - (tstack->display_y - disp_y);
+		if (return_y < YSCROLL)
+		{
+			tstack->scrolled_y = false;
+		}
 	}
 	else
 	{
 		return_y = disp_y;
 	}
+	if (return_y < 1)
+	{
+		return_y = 1;
+	}
+
+	tstack->ypos = return_y;
+	return return_y;
 }
 
-int GetYFromTopMostLine(File_info *tstack)
-{
-	int y = 0;
-	if (tstack->scrolled_y)
-	{
-		y = tstack->ypos - YSCROLL;
-	}
-	else
-	{
-		y = tstack->ypos;
-	}
-	return y;
-}
-
-int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char **matching)
+/* int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char **matching)
 {
 	char **matching_tmp = (char **)calloc(sizeof(char *), keywords_len);
 
@@ -1058,7 +1084,7 @@ int ShowAutoCompletion(char *input, char **keywords, size_t keywords_len, char *
 		matching_tmp[i] = calloc(keywords_len, sizeof(char)); // Allocate memory for the matching strings
 	}
 	// Use Levenshtein distance to find the matching strings
-}
+} */
 
 int GetNewtroditInput(File_info *tstack) // The same arguments are used to keep compatibility with the Windows version
 {
@@ -1067,30 +1093,46 @@ int GetNewtroditInput(File_info *tstack) // The same arguments are used to keep 
 	return keycode;
 }
 
-char *extension_filetype(char *filename)
+int IsWholeWord(char *str, char *word, char *delims)
 {
-	char *extension = "File";
-	char *ptr;
-	if (!strpbrk(filename, "."))
-	{
-		return extension;
-	}
-	extension = StrLastTok(Tab_stack[file_index].filename, ".");
-	for (int i = 0; i < sizeof(FileLang) / sizeof(FileLang[0]); i++)
-	{
-		for (size_t k = 0; k < FileLang[i].extcount; k++)
-		{
+    if (!memcmp(str, word, strlen(str)))
+    {
+        return 1;
+    }
+    char *ptr = strstr(str, word);
+    if (!ptr)
+    {
+        return -1;
+    }
+    size_t wordindex = ptr - str;
+    int isBeginning = 0, isEnd = 0;
 
-			ptr = strtok(FileLang[i].extensions, "|");
-			while (ptr != NULL)
-			{
-				if (!strcmp(extension, ptr))
-				{
-					return FileLang[i].display_name;
-				}
-				ptr = strtok(NULL, "|");
-			}
-		}
-	}
-	return (char *)"Unknown file type";
+    if (!wordindex)
+    {
+        isBeginning = 1;
+    }
+    else if (!memcmp(ptr, word, strlen(ptr)))
+    {
+        isEnd = 1;
+    }
+    int beginningWhole = 0, endWhole = 0;
+    for (int k = 0; k < strlen(delims); k++)
+    {
+
+        if (!isBeginning && str[wordindex - 1] == delims[k])
+        {
+            beginningWhole = 1;
+        }
+
+        if (!isEnd && ptr[strlen(word)] == delims[k])
+        {
+            endWhole = 1;
+        }
+
+        if ((beginningWhole && (endWhole || isEnd)) || (endWhole && (isBeginning || beginningWhole)))
+        {
+            return 1;
+        }
+    }
+    return 0;
 }

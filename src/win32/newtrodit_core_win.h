@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <errno.h>
 
 #include <Windows.h>
@@ -184,6 +185,7 @@ typedef struct Syntax_info
 	// Various size parameters
 
 	size_t keyword_count;
+	size_t comment_count;
 	size_t capital_min; // Minimum length of a word to be highlighted as capital
 
 	bool capital_enabled;
@@ -195,7 +197,7 @@ typedef struct Syntax_info
 	size_t parenthesis_pair_count;
 	size_t square_bracket_pair_count;
 	// Keyword info
-	char *comments;
+	char **comments;
 	char **keywords;
 	int *color;
 } Syntax_info; // Syntax highlighting information
@@ -211,8 +213,8 @@ typedef struct File_info
 {
 	char *filename;
 	char *fullpath;
-	
-	char* language; // Language (e.g: PowerShell, C, C++, etc.)
+
+	char *language; // Language (e.g: PowerShell, C, C++, etc.)
 
 	bool is_readonly;
 	int permissions;
@@ -374,11 +376,17 @@ void ClearPartial(int x, int y, int width, int height) // Clears a section of th
 }
 
 /* Function for printing a string on the last row of the screen */
-void PrintBottomString(char *bottom_string)
+void PrintBottomString(char *str, ...)
 {
+	va_list args;
+	va_start(args, str);
 	int xs = XSIZE;
+	char *printbuf = calloc(xs + 1, sizeof(char));
+	vsnprintf(printbuf, xs + 1, str, args);
+
 	ClearPartial(0, BOTTOM, xs, 1);
-	printf("%.*s", xs, bottom_string); // Don't get out of the buffer
+	printf("%.*s", xs, printbuf); // Don't get out of the buffer
+	free(printbuf);
 	return;
 }
 
@@ -461,7 +469,8 @@ char *ParseHexString(char *hexstr)
 	ptr_tokenize = strtok(hexstr, delims);
 	while (ptr_tokenize != NULL)
 	{
-		if (!strncmp(strlwr(ptr_tokenize), hex_prefix, strlen(hex_prefix))) // Only parse if the strings starts with 0x
+		strlwr(ptr_tokenize);
+		if (!strncmp(ptr_tokenize, hex_prefix, strlen(hex_prefix))) // Only parse if the strings starts with 0x
 		{
 			hstd_return = HexStrToDec(ptr_tokenize);
 			if (hstd_return % 256) // Ignore null values
@@ -596,7 +605,18 @@ char *PrintTab(int tab_count)
 
 /* ============================ STRING MANIPULATION ============================== */
 
-/* ? */
+/* Custom strtok() function */
+char *strtok_n(char *str, char *tokens)
+{
+	size_t span = strcspn(str, tokens);
+	if (span == strlen(str))
+	{
+		return NULL;
+	}
+	return Substring(0, span, str);
+}
+
+/* Safe version of strcpy() and strncpy() */
 char *strncpy_n(char *dest, const char *src, size_t count)
 {
 	// Better version that strncpy() because it always null terminates strings
@@ -639,7 +659,7 @@ int FindString(char *str, char *find)
 }
 
 /* ? */
-// Pretty sure this just removes quotes on a string?
+// Remove the quotes on a string
 char *RemoveQuotes(char *dest, char *src)
 {
 	if (src[0] == '\"' && src[strlen(src) - 1] == '\"')
@@ -652,7 +672,6 @@ char *RemoveQuotes(char *dest, char *src)
 	}
 	return dest;
 }
-
 
 // Pretty sure this just replaces specific characters in a string n amount of times
 char *ReplaceString(char *s, char *find, char *replace, int *occurenceCount)
@@ -696,7 +715,7 @@ char *ReplaceString(char *s, char *find, char *replace, int *occurenceCount)
 char *join(const char *s1, const char *s2)
 {
 	size_t arr_size = strlen(s1) + strlen(s2) + 1;
-	char *s = malloc(arr_size);
+	char *s = calloc(arr_size, sizeof(char));
 	if (!s)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
@@ -711,17 +730,15 @@ char *join(const char *s1, const char *s2)
 /* Returns a string where all characters are lower case */
 char *strlwr(char *s)
 {
-	char *s2 = malloc(strlen(s) + 1);
 	for (int i = 0; i < strlen(s); i++)
 	{
-		s2[i] = tolower(s[i]);
+		s[i] = tolower(s[i]);
 	}
-	s2[strlen(s)] = '\0';
-	return s2;
+	return s;
 }
 
 // Insert a string at a specific index
-char *InsertStr(char *s1, char *s2, int pos)
+/* char *InsertStr(char *s1, char *s2, int pos)
 {
 	size_t len1 = strlen(s1), len2 = strlen(s2);
 	char *new_str = calloc(len1 + len2 + 8, sizeof(char)); // For safety
@@ -735,6 +752,20 @@ char *InsertStr(char *s1, char *s2, int pos)
 	new_str[strlen(new_str)] = '\0';
 	memcpy(new_str + pos, s2, len2);
 
+	return new_str;
+} */
+
+char *InsertStr(char *s1, char *s2, int pos)
+{
+	char *new_str = calloc(strlen(s1) + strlen(s2) + 2, sizeof(char));
+	if (!new_str)
+	{
+		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
+		return NULL;
+	}
+	strncat(new_str, s1, pos);
+	strncat(new_str, s2, strlen(s2));
+	strncat(new_str, s1 + pos, strlen(s1) - pos);
 	return new_str;
 }
 
@@ -764,13 +795,13 @@ char *DeleteStr(char *str, int pos, size_t count)
 
 char *DeleteChar(char *str, int pos) // This function is limited to lines with a length of 2^31 - 1 characters
 {
-    size_t len = strlen(str);
-    if (len > pos)
-    {
-        memmove(str + pos, str + pos + 1, len - pos);
-        str[strlen(str)] = '\0';
-    }
-    return str;
+	size_t len = strlen(str);
+	if (len > pos)
+	{
+		memmove(str + pos, str + pos + 1, len - pos);
+		str[strlen(str)] = '\0';
+	}
+	return str;
 }
 
 char *InsertRow(char **arr, int startpos, size_t arrsize, char *arrvalue)
@@ -824,26 +855,15 @@ char *RemoveTab(char *s)
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 		return NULL;
 	}
-	int n = TokCount(s, "\t");
 	int tmp;
 
 	new_s = ReplaceString(s, "\t", PrintTab(TAB_WIDE), &tmp);
 	printf("%s", new_s);
 	return new_s;
 }
-
-char *StringToJSON(char *s)
-{
-	char *s2 = malloc(strlen(s) * 2 + 100); // Allocate memory for the new string
-	char squot = '\'', dquot = '"', brack = '{', brack2 = '}', comma = ',', colon, sqbr1 = '[', sqbr2 = ']';
-	snprintf(s2, strlen(s) * 2 + 100, "%c%c%s%c%c%c ", brack, dquot, s, dquot, brack2, comma);
-	return s2;
-}
-
 /* ========================= END OF STRING MANIPULATION ========================== */
 
 /* =================================== SYSTEM  =================================== */
-
 
 /* Improved getch(), returns all codes in a single call */
 int getch_n()
@@ -864,7 +884,6 @@ int getch_n()
 	return gc_n;
 }
 
-
 /* Checks the physical state of a key (Pressed or not pressed) */
 int CheckKey(int keycode)
 {
@@ -882,7 +901,7 @@ char *FullPath(char *file)
 /* Return a string representing the current date and time */
 char *GetTime(bool display_ms)
 {
-	char *time_buf = malloc(DEFAULT_ALLOC_SIZE);
+	char *time_buf = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
 	if (!time_buf)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
@@ -906,17 +925,27 @@ char *GetTime(bool display_ms)
 }
 
 /* Create a log file in the CWD (current working directory) */
-int WriteLogFile(char *data)
+int WriteLogFile(char *data, ...)
 {
+	va_list args;
+	va_start(args, data);
+	char *writebuf;
+
 	if (useLogFile)
 	{
 		char *filename = SInf.log_file_name; // Get the log file name
-		FILE *f = fopen(filename, "a");
+		char *gettime = GetTime(true);
+		FILE *f = fopen(filename, "ab");
 		if (!f)
 		{
 			return errno;
 		}
-		fprintf(f, "[%s] %s\n", GetTime(true), data);
+
+		writebuf = calloc(DEFAULT_ALLOC_SIZE + 1, sizeof(char));
+		vsnprintf(writebuf, DEFAULT_ALLOC_SIZE, data, args);
+		fprintf(f, "[%s] %s\n", gettime, writebuf);
+		free(writebuf);
+		free(gettime);
 		fclose(f);
 		return 0;
 	}
@@ -1002,7 +1031,7 @@ int ValidSize()
 	if (XSIZE < 60 || YSIZE < 6) // Check for console size
 	{
 		MessageBox(0, NEWTRODIT_ERROR_WINDOW_TOO_SMALL, "Newtrodit", 16);
-		WriteLogFile(NEWTRODIT_ERROR_WINDOW_TOO_SMALL);
+		WriteLogFile("%s", NEWTRODIT_ERROR_WINDOW_TOO_SMALL);
 		last_known_exception = NEWTRODIT_ERROR_WINDOW_TOO_SMALL;
 
 		return 0;
@@ -1045,7 +1074,7 @@ int BufferLimit(File_info *tstack)
 	if (tstack->xpos >= BUFFER_X || tstack->ypos >= BUFFER_Y)
 	{
 		last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
-		PrintBottomString(NEWTRODIT_ERROR_OUT_OF_MEMORY);
+		PrintBottomString("%s", NEWTRODIT_ERROR_OUT_OF_MEMORY);
 		getch_n();
 		return 1;
 	}
@@ -1128,6 +1157,7 @@ LPSTR GetErrorDescription(DWORD dwError)
 	LPSTR lpMsgBuf;
 	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 				  NULL, dwError, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&lpMsgBuf, 0, NULL);
+	lpMsgBuf[strcspn(lpMsgBuf, "\r\n")] = '\0';
 	return lpMsgBuf;
 }
 
@@ -1140,6 +1170,8 @@ void StartProcess(char *command_line)
 	ZeroMemory(&pinf, sizeof(pinf));
 	if (!CreateProcess(NULL, command_line, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pinf))
 	{
+		WriteLogFile("%s%s", NEWTRODIT_ERROR_FAILED_PROCESS_START, command_line);
+		PrintBottomString("%s", NEWTRODIT_ERROR_FAILED_PROCESS_START);
 		MessageBox(0, join(NEWTRODIT_ERROR_FAILED_PROCESS_START, GetErrorDescription(GetLastError())), "Error", MB_ICONERROR);
 	}
 	CloseHandle(pinf.hProcess);
@@ -1147,14 +1179,20 @@ void StartProcess(char *command_line)
 	return;
 }
 
-int SetTitle(char *s)
+void SetTitle(char *s, ...)
 {
-	SetConsoleTitle(s);
+	va_list args;
+	va_start(args, s);
+	char* title = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+	vsnprintf(title, sizeof(char)*DEFAULT_ALLOC_SIZE, s, args);
+	SetConsoleTitle(title);
+	va_end(args);
+	free(title);
 }
 
 char *get_path_directory(char *path, char *dest) // Not a WinAPI function
 {
-	strcpy(dest, path);
+	memcpy(dest, path, strlen(path));
 
 	int tmp_int = TokLastPos(path, PATHTOKENS);
 
@@ -1201,8 +1239,9 @@ char *GetLogFileName()
 	}
 	else
 	{
-		snprintf(buf, MAX_PATH, "%snewtrodit.log");
+		snprintf(buf, MAX_PATH, "newtrodit.log");
 	}
+	free(dirloc);
 	return buf;
 }
 
@@ -1317,7 +1356,6 @@ int AllocateBufferMemory(File_info *tstack)
 	tstack->Syntaxinfo.syntax_lang = strdup(DEFAULT_SYNTAX_LANG);
 	tstack->Syntaxinfo.syntax_file = "Default syntax highlighting";
 	tstack->Syntaxinfo.separators = DEFAULT_SEPARATORS;
-	tstack->Syntaxinfo.comments = DEFAULT_COMMENTS;
 	tstack->Syntaxinfo.num_color = DEFAULT_NUM_COLOR;
 	tstack->Syntaxinfo.capital_color = DEFAULT_CAPITAL_COLOR;
 	tstack->Syntaxinfo.capital_min = DEFAULT_CAPITAL_MIN_LEN;
@@ -1327,24 +1365,29 @@ int AllocateBufferMemory(File_info *tstack)
 	tstack->Syntaxinfo.quote_color = DEFAULT_QUOTE_COLOR;
 	tstack->Syntaxinfo.default_color = DEFAULT_SYNTAX_COLOR;
 	tstack->Syntaxinfo.comment_color = DEFAULT_COMMENT_COLOR;
-	tstack->Syntaxinfo.keyword_count = 0; // TODO: Initialize the keyword array
-	tstack->Syntaxinfo.keywords = (char **)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(char *));
+	tstack->Syntaxinfo.keyword_count = sizeof(keywords) / sizeof(keywords[0]);
+	tstack->Syntaxinfo.comment_count = sizeof(comments) / sizeof(comments[0]);
+	tstack->Syntaxinfo.keywords = calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(char *));
+	tstack->Syntaxinfo.comments = calloc(sizeof(comments) / sizeof(comments[0]), sizeof(char *));
 	tstack->Syntaxinfo.color = (int *)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(int));
 
 	for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
 	{
-
 		tstack->Syntaxinfo.keywords[i] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
 		tstack->Syntaxinfo.keywords[i] = strdup(keywords[i].keyword);
-		tstack->Syntaxinfo.color[i] = (int)calloc(1, sizeof(int));
 		tstack->Syntaxinfo.color[i] = keywords[i].color;
+	}
+
+	for (int i = 0; i < sizeof(comments) / sizeof(comments[0]); i++)
+	{
+		tstack->Syntaxinfo.comments[i] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+		tstack->Syntaxinfo.comments[i] = strdup(comments[i].keyword);
 	}
 
 	tstack->Syntaxinfo.multi_line_comment = false;
 	tstack->Syntaxinfo.bracket_pair_count = 0;
 	tstack->Syntaxinfo.parenthesis_pair_count = 0;
 	tstack->Syntaxinfo.square_bracket_pair_count = 0;
-
 	tstack->linecount_wide = LINECOUNT_WIDE;
 	tstack->filename = calloc(MAX_PATH, sizeof(char));
 	tstack->language = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
@@ -1371,6 +1414,7 @@ int AllocateBufferMemory(File_info *tstack)
 	tstack->last_dispy = 1;
 	tstack->last_y = 1;
 	tstack->is_readonly = false;
+	tstack->hFile = calloc(sizeof(HANDLE), 1);
 	tstack->hFile = INVALID_HANDLE_VALUE;
 	// Initialize the file time structures
 	tstack->fwrite_time.dwHighDateTime = 0;

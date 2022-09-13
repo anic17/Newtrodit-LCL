@@ -18,7 +18,7 @@
 */
 
 const char newtrodit_version[] = "0.6";
-const char newtrodit_build_date[] = "26/8/2022";
+const char newtrodit_build_date[] = "6/9/2022";
 const char newtrodit_repository[] = "https://github.com/anic17/Newtrodit";
 const char newtrodit_lcl_repository[] = "https://github.com/anic17/Newtrodit-LCL";
 char manual_file[MAX_PATH] = "newtrodit.man";
@@ -53,6 +53,9 @@ int showMillisecondsInTime = false; // Show milliseconds in time insert function
 int useLogFile = true;
 int createNewLogFiles = false; // Create new log files when logging is enabled
 int RGB24bit = false;          // Use 24-bit RGB instead of 4-bit colors
+int findInsensitive = false; // Find insensitive string
+int matchWholeWord = false; // Match whole word when finding a string
+
 
 int bpsPairHighlight = false; // Use BPS pair highlighting (bugged)
 
@@ -66,7 +69,11 @@ int allowAutomaticResizing = true; // Changing this value can cause issues with 
 
 int c = 0; // Different error/debug codes
 
-static int multiLineComment = false;
+/*
+    TODO: Add multiline comment support
+    static int multiLineComment = false;
+*/
+
 int syntaxHighlighting = false;
 int syntaxAfterDisplay = false; // Display syntax after display
 int allocateNewBuffer = true;
@@ -80,6 +87,7 @@ int scrollRate = 3; // Default scroll rate (scroll 3 lines per mouse wheel). Nee
 
 #define BG_DEFAULT 0x07 // Background black, foreground (font) white
 #define FG_DEFAULT 0x70 // Background white, foreground (font) black
+#define FIND_HIGHLIGHT_COLOR 0xE0 // Background yellow, foreground black
 
 int bg_color = BG_DEFAULT; // Background color (menu)
 int fg_color = FG_DEFAULT; // Foreground color (text)
@@ -95,7 +103,7 @@ char *run_macro, *last_known_exception;
 // Syntax highlighting
 
 #define DEFAULT_SYNTAX_LANG "C"
-#define DEFAULT_SEPARATORS ",()+-/*=~[];{}<> \t"
+#define DEFAULT_SEPARATORS "?!:,()+-/*=~[];{}<> \t"
 #define DEFAULT_COMMENTS "//"
 
 #define DEFAULT_SYNTAX_COLOR 0x7  // White
@@ -130,6 +138,12 @@ typedef struct keywords
     char *keyword;
     int color;
 } keywords_t;
+
+typedef struct comment
+{
+    char *keyword;
+    int color;
+} comment_t;
 
 keywords_t keywords[] = {
     {"break", 5},
@@ -262,11 +276,7 @@ keywords_t keywords[] = {
 
 };
 
-struct
-{
-    char *keyword;
-    int color;
-} comment[] = {
+comment_t comments[] = {
     {"//", 0x8},
     {"/*", 0x8},
     {"*/", 0x8},

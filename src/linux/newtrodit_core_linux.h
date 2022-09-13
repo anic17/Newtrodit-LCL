@@ -29,6 +29,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -192,6 +193,7 @@ typedef struct Syntax_info
   // Various size parameters
 
   size_t keyword_count;
+  size_t comment_count;
   size_t capital_min; // Minimum length of a word to be highlighted as capital
 
   bool capital_enabled;
@@ -203,7 +205,7 @@ typedef struct Syntax_info
   size_t square_bracket_pair_count;
 
   // Keyword info
-  char *comments;
+  char **comments;
   char **keywords;
   int *color;
 } Syntax_info; // Syntax highlighting information
@@ -562,11 +564,17 @@ void ClearPartial(int x, int y, int width, int height) // Clears a section of th
 }
 
 /* Function for printing a string on the last row of the screen */
-void PrintBottomString(char *bottom_string)
+void PrintBottomString(char *str, ...)
 {
+  va_list args;
+  va_start(args, str);
   int xs = XSIZE;
+  char *printbuf = calloc(xs + 1, sizeof(char));
+  vsnprintf(printbuf, xs + 1, str, args);
+
   ClearPartial(0, BOTTOM, xs, 1);
-  printf("%.*s", xs, bottom_string); // Don't get out of the buffer
+  printf("%.*s", xs, printbuf); // Don't get out of the buffer
+  free(printbuf);
   return;
 }
 
@@ -629,9 +637,10 @@ int HexStrToDec(char *s)
 #ifdef strlwr
 #undef strlwr
 #endif
+/* Returns a string where all characters are lower case */
 char *strlwr(char *s)
 {
-  char *s2 = malloc(strlen(s) + 1);
+  char *s2 = calloc(sizeof(char), strlen(s) + 1);
   for (int i = 0; i < strlen(s); i++)
   {
     s2[i] = tolower(s[i]);
@@ -798,7 +807,27 @@ char *PrintTab(int tab_count)
 
 /* ============================ STRING MANIPULATION ============================== */
 
-/* ? */
+/* Get a substring from a char pointer */
+char *Substring(size_t start, size_t count, char *str)
+{
+  char *new_str = malloc(count + 1);
+  memset(new_str, 0, count + 1);
+  strncat(new_str, str + start, count);
+  return new_str;
+}
+
+/* Custom strtok() function */
+char *strtok_n(char *str, char *tokens)
+{
+  size_t span = strcspn(str, tokens);
+  if (span == strlen(str))
+  {
+    return NULL;
+  }
+  return Substring(0, span, str);
+}
+
+/* Safe version of strcpy() and strncpy() */
 char *strncpy_n(char *dest, const char *src, size_t count)
 {
   // Better version that strncpy() because it always null terminates strings
@@ -888,16 +917,17 @@ char *ReplaceString(char *s, char *find, char *replace, int *occurenceCount)
 char *join(const char *s1, const char *s2)
 {
   size_t arr_size = strlen(s1) + strlen(s2) + 1;
-  char *s = malloc(arr_size);
+  char *s = calloc(arr_size, sizeof(char));
+  if (!s)
+  {
+    last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
+    return NULL;
+  }
   strncpy_n(s, s1, arr_size);
   strncat(s, s2, arr_size);
-  last_known_exception = NEWTRODIT_ERROR_OUT_OF_MEMORY;
 
   return s;
 }
-
-/* Returns a string where all characters are lower case */
-
 
 // Insert a string at a specific index
 char *InsertStr(char *s1, char *s2, int pos)
@@ -1006,27 +1036,6 @@ char *RemoveTab(char *s)
   return new_s;
 }
 
-/* ? */
-char *Substring(size_t start, size_t count, char *str)
-{
-  char *new_str = malloc(count + 1);
-  memset(new_str, 0, count + 1);
-  strncat(new_str, str + start, count);
-  return new_str;
-}
-
-/* ? */
-char *StringToJSON(char *s)
-{
-  char *s2 =
-      malloc(strlen(s) * 2 + 100); // Allocate memory for the new string
-  char squot = '\'', dquot = '"', brack = '{', brack2 = '}', comma = ',', colon,
-       sqbr1 = '[', sqbr2 = ']';
-  snprintf(s2, strlen(s) * 2 + 100, "%c%c%s%c%c%c ", brack, dquot, s, dquot,
-           brack2, comma);
-  return s2;
-}
-
 /* ========================= END OF STRING MANIPULATION ========================== */
 
 /* =================================== SYSTEM ==================================== */
@@ -1074,17 +1083,27 @@ char *GetTime(bool display_ms)
 }
 
 /* Create a log file in the CWD (current working directory) */
-int WriteLogFile(char *data)
+int WriteLogFile(char *data, ...)
 {
+  va_list args;
+  va_start(args, data);
+  char *writebuf;
+
   if (useLogFile)
   {
     char *filename = SInf.log_file_name; // Get the log file name
-    FILE *f = fopen(filename, "a");
+    char *gettime = GetTime(true);
+    FILE *f = fopen(filename, "ab");
     if (!f)
     {
-      return -1;
+      return errno;
     }
-    fprintf(f, "[%s] %s\n", GetTime(true), data);
+
+    writebuf = calloc(DEFAULT_ALLOC_SIZE + 1, sizeof(char));
+    vsnprintf(writebuf, DEFAULT_ALLOC_SIZE, data, args);
+    fprintf(f, "[%s] %s\n", gettime, writebuf);
+    free(writebuf);
+    free(gettime);
     fclose(f);
     return 0;
   }
@@ -1295,26 +1314,14 @@ char *ErrorMessage(int err, const char *filename)
   }
 }
 
-// What is this function?
-#ifdef _WIN32
-LPSTR GetErrorDescription(DWORD dwError)
-{
-  LPSTR lpMsgBuf;
-  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                    FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL, dwError, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPSTR)&lpMsgBuf, 0, NULL);
-  return lpMsgBuf;
-}
-#else
+// Get a description of the error
 char *GetErrorDescription(unsigned int error)
 {
   char *errordesc;
   asprintf(&errordesc, "%s", strerror(errno));
 }
-#endif
 
-// Start a process to what?
+// Start a process (Windows only for now)
 void StartProcess(char *command_line)
 {
 #ifdef _WIN32
@@ -1338,9 +1345,15 @@ void StartProcess(char *command_line)
 
   return;
 }
-int SetTitle(char *s)
+void SetTitle(char *s, ...)
 {
-  printf("\033]0;%s\007", s);
+  va_list args;
+  va_start(args, s);
+  char *title = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+  vsnprintf(title, sizeof(char) * DEFAULT_ALLOC_SIZE, s, args);
+  printf("\033]0;%s\007", title);
+  va_end(args);
+  free(title);
 }
 
 char *get_path_directory(char *path, char *dest) // Not a WinAPI function
@@ -1410,7 +1423,7 @@ int GetConsoleInfo(int type)
   {
     EchoOff();
     CanonOff();
-    int *X, *Y;
+    int *X = 0, *Y = 0;
     printf("\x1B[6n");
     scanf("\x1B[%d;%dR", X, Y);
     return *X;
@@ -1490,7 +1503,6 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->Syntaxinfo.syntax_lang = strdup(DEFAULT_SYNTAX_LANG);
   tstack->Syntaxinfo.syntax_file = (char *)"Default syntax highlighting";
   tstack->Syntaxinfo.separators = (char *)DEFAULT_SEPARATORS;
-  tstack->Syntaxinfo.comments = (char *)DEFAULT_COMMENTS;
   tstack->Syntaxinfo.num_color = DEFAULT_NUM_COLOR;
   tstack->Syntaxinfo.capital_color = DEFAULT_CAPITAL_COLOR;
   tstack->Syntaxinfo.capital_min = DEFAULT_CAPITAL_MIN_LEN;
@@ -1499,16 +1511,26 @@ int AllocateBufferMemory(File_info *tstack)
   tstack->Syntaxinfo.quote_color = DEFAULT_QUOTE_COLOR;
   tstack->Syntaxinfo.default_color = DEFAULT_SYNTAX_COLOR;
   tstack->Syntaxinfo.comment_color = DEFAULT_COMMENT_COLOR;
-  tstack->Syntaxinfo.keyword_count = 0; // TODO: Initialize the keyword array
+  tstack->Syntaxinfo.keyword_count = sizeof(keywords) / sizeof(keywords[0]);
+  tstack->Syntaxinfo.comment_count = sizeof(comments) / sizeof(comments[0]);
+
   tstack->Syntaxinfo.keywords = (char **)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(char *));
+  tstack->Syntaxinfo.comments = (char **)calloc(sizeof(comments) / sizeof(comments[0]), sizeof(char *));
   tstack->Syntaxinfo.color = (int *)calloc(sizeof(keywords) / sizeof(keywords[0]), sizeof(int));
+
   for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
   {
     tstack->Syntaxinfo.keywords[i] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
     tstack->Syntaxinfo.keywords[i] = strdup(keywords[i].keyword);
-    // tstack->Syntaxinfo.color[i] = (int*)calloc(1, sizeof(int));
     tstack->Syntaxinfo.color[i] = keywords[i].color;
   }
+
+  for (int i = 0; i < sizeof(comments) / sizeof(comments[0]); i++)
+  {
+    tstack->Syntaxinfo.comments[i] = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+    tstack->Syntaxinfo.comments[i] = strdup(comments[i].keyword);
+  }
+
   tstack->Syntaxinfo.multi_line_comment = false;
   tstack->Syntaxinfo.bracket_pair_count = 0;
   tstack->Syntaxinfo.parenthesis_pair_count = 0;

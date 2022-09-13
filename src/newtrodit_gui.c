@@ -133,6 +133,10 @@ void ShowFindMenu()
 	SetColor(bg_color);
 	fputs(": Toggle case sensitive | ", stdout);
 	SetColor(fg_color);
+	fputs("F5", stdout);
+	SetColor(bg_color);
+	fputs(": Only match full words | ", stdout);
+	SetColor(fg_color);
 	fputs("ESC", stdout);
 	SetColor(bg_color);
 	fputs(": Quit", stdout);
@@ -186,14 +190,14 @@ void NewtroditNameLoad()
 	SetColor(0x07);
 }
 
-void DisplayCursorPos(int xps, int yps)
+void DisplayCursorPos(File_info *tstack)
 {
 	int cursorvis = GetConsoleInfo(CURSOR_VISIBLE);
 	SetCursorSettings(false, GetConsoleInfo(CURSOR_SIZE));
 	size_t len = strlen(NEWTRODIT_DIALOG_BOTTOM_HELP);
 	ClearPartial(len, BOTTOM, XSIZE - len, 1);
 
-	printf(longPositionDisplay ? "Line %d, Column %d" : "Ln %d, Col %d", yps, xps + 1); // +1 because it's zero indexed
+	printf(longPositionDisplay ? "Line %d, Column %d" : "Ln %d, Col %d", tstack->ypos, tstack->xpos + 1); // +1 because it's zero indexed
 	SetCursorSettings(cursorvis, GetConsoleInfo(CURSOR_SIZE));
 	// ClearPartial(GetConsoleInfo(XCURSOR), BOTTOM, wrapSize - GetConsoleInfo(XCURSOR), 1);
 }
@@ -215,7 +219,6 @@ void LoadAllNewtrodit()
 	default: // We will be using this when we want a full screen refresh from outside the load function
 		break;
 	}
-
 	NewtroditNameLoad();
 	CenterText(StrLastTok(Tab_stack[file_index].filename, PATHTOKENS), 0);
 	DisplayTabIndex(&Tab_stack[file_index]);
@@ -223,7 +226,7 @@ void LoadAllNewtrodit()
 	ShowBottomMenu();
 	if (lineCount)
 	{
-		DisplayLineCount(Tab_stack, YSIZE - 3, 1);
+		DisplayLineCount(&Tab_stack[file_index], YSIZE - 3, 1);
 	}
 	SetCursorSettings(true, GetConsoleInfo(CURSOR_SIZE));
 
@@ -246,20 +249,25 @@ void NewtroditCrash(char *crash_reason, int crash_retval)
 	crash_desc = (char *)GetErrorDescription(get_le);
 #endif
 	crash_desc[strcspn(crash_desc, "\r")] = 0;
-	LoadAllNewtrodit(); // Just to not have a blank screen and make it scary
+	//LoadAllNewtrodit(); // Just to not have a blank screen and make it scary
 	int errno_temp = errno;
 	if (!errno_temp)
 	{
 		errno_temp = crash_retval;
 	}
 	ClearPartial(0, 1, XSIZE, YSIZE - 1);
-	printf("\aNewtrodit ran into a problem and it crashed. We're sorry.\nPlease report this issue to %s/issues\n\nDebug info:\nerrno: 0x%x (%s)\nGetLastError: 0x%x (%s)\nLast known debug information: %s\n\nProgram information:\nVersion: %s\nBuild date: %s\nCommand line arguments:\n", newtrodit_repository, errno_temp, strerror(errno_temp), get_le, crash_desc, last_known_exception, newtrodit_version, newtrodit_build_date);
+	char* buf = calloc(DEFAULT_ALLOC_SIZE, sizeof(char));
+	snprintf(buf, DEFAULT_ALLOC_SIZE*sizeof(char),"\aNewtrodit ran into a problem and it crashed. We're sorry.\nPlease report this issue to %s/issues\n\nDebug info:\nerrno: 0x%x (%s)\nGetLastError: 0x%x (%s)\nLast known debug information: %s\n\nProgram information:\nVersion: %s\nBuild date: %s\nCommand line arguments:\n", newtrodit_repository, errno_temp, strerror(errno_temp), get_le, crash_desc, last_known_exception, newtrodit_version, newtrodit_build_date);
+	fputs(buf, stdout);
+	WriteLogFile("%s", buf);
 	for (int i = 0; i < SInf.argc; i++)
 	{
 		printf("%s ", SInf.argv[i]); // Prints the command line arguments
 	}
 
-	printf("\n\nEditing file '%s', line %d, column %d\nTabs open: %d, current tab: %d\n\nReason: %s\n\nPress enter to exit...\n", Tab_stack[file_index].filename, Tab_stack[file_index].ypos, Tab_stack[file_index].xpos + 1, open_files, file_index + 1, crash_reason);
+	snprintf(buf, DEFAULT_ALLOC_SIZE*sizeof(char),"\n\nEditing file '%s', line %d, column %d\nTabs open: %d, current tab: %d\n\nReason: %s\n\nPress enter to exit...\n", Tab_stack[file_index].filename, Tab_stack[file_index].ypos, Tab_stack[file_index].xpos + 1, open_files, file_index + 1, crash_reason);
+	fputs(buf, stdout);
+	WriteLogFile("%s", buf);
 	DisplayCursor(true);
 	getchar();
 	ExitRoutine(crash_retval); // Don't perform any cleanup, just exit
@@ -268,8 +276,7 @@ void NewtroditCrash(char *crash_reason, int crash_retval)
 int QuitProgram(int color_quit)
 {
 	if (Tab_stack[file_index].is_modified) // Second condition should never happen
-	{	printf("readyok");
-
+	{
 		PrintBottomString(NEWTRODIT_PROMPT_SAVE_MODIFIED_FILE);
 		if (YesNoPrompt())
 		{
@@ -297,18 +304,17 @@ int QuitProgram(int color_quit)
 
 void UpdateTitle(File_info *tstack)
 {
-	if (tstack->is_saved && fullPathTitle)
+	if (tstack->is_saved)
 	{
-		char *path = tstack->filename;
-		tstack->filename = strdup(FullPath(path));
+		tstack->fullpath = strdup(FullPath(tstack->filename));
 	}
 	if (tstack->is_modified)
 	{
-		SetTitle(join(join("Newtrodit - ", tstack->filename), " (Modified)"));
+		SetTitle(join(join("Newtrodit - ", (fullPathTitle && tstack->is_saved && !tstack->is_untitled) ? tstack->fullpath : tstack->filename), " (Modified)"));
 	}
 	else
 	{
-		SetTitle(join("Newtrodit - ", tstack->filename));
+		SetTitle(join("Newtrodit - ", (fullPathTitle && tstack->is_saved && !tstack->is_untitled) ? tstack->fullpath : tstack->filename));
 	}
 }
 
@@ -344,18 +350,29 @@ int ToggleOption(int *option, char *text, int reloadScreen)
 		DisplayFileContent(&Tab_stack[file_index], stdout, 0);
 	}
 
-	*option ? PrintBottomString(join(text, NEWTRODIT_DIALOG_ENABLED)) : PrintBottomString(join(text, NEWTRODIT_DIALOG_DISABLED));
+	if (*option)
+	{
+		PrintBottomString("%s%s", text, NEWTRODIT_DIALOG_ENABLED);
+		WriteLogFile("%s%s", text, NEWTRODIT_DIALOG_ENABLED);
+	}
+	else
+	{
+		PrintBottomString("%s%s", text, NEWTRODIT_DIALOG_DISABLED);
+		WriteLogFile("%s%s", text, NEWTRODIT_DIALOG_DISABLED);
+	}
 	return *option;
 }
 
 void RefreshLine(File_info *tstack, size_t line_num, size_t disp_y, bool clearLine)
 {
-	if(clearLine)
+	if (clearLine)
 	{
-		ClearPartial(lineCount ? Tab_stack[file_index].linecount_wide : 0, disp_y, XSIZE - lineCount ? Tab_stack[file_index].linecount_wide : 0, 1);
-	} else {
-		gotoxy(lineCount ? Tab_stack[file_index].linecount_wide : 0, disp_y);
+		ClearPartial(lineCount ? tstack->linecount_wide : 0, disp_y, wrapSize, 1);
 	}
-	
+	else
+	{
+		gotoxy(lineCount ? tstack->linecount_wide : 0, disp_y);
+	}
+
 	print_line(tstack->strsave[line_num]);
 }
