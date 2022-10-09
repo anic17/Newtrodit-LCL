@@ -10,7 +10,7 @@ Official Newtrodit-LCL (Linux Compatibility Layer) repository, all code is under
 ###### Default Newtrodit theme
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_main.png" width="521" height="300">
 
-###### Dark line counting theme
+###### Dark line numering theme
 <img src="https://github.com/anic17/Newtrodit-LCL/blob/main/res/screenshot_dark.png" width="521" height="300">
 
 ## Motives
@@ -61,7 +61,7 @@ If you don't know what any of that means, you don't have to worry about it. Newt
 # Build
 The easiest way to build Newtrodit is to use the `make` files.
 
-Run [`make.bat`](make.bat) if you're Windows, or [`make.sh`](make.sh) if you're using a Linux system. 
+Run [`make.bat`](make.bat) if you're using Windows, or [`make.sh`](make.sh) if you're using a Linux system. 
 
 # Contributing
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
