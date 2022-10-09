@@ -3,13 +3,13 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
 
  Newtrodit is a console-based text editor. As Windows doesn't include a console text editor, 
  Newtrodit is probably your best choice. The editor is designed to be minimalistic and easy to use.
- Even if it's keyboard-based, the keybinds are easy to remember due to the fact that they're
+ Even if it's keyboard-based, the keybindings are easy to remember due to the fact that they're
  similar to other applications.
  The main goal is having a noticeable efficiency increase when working.
 
  [38;2;207;50;68mCommand line usage[0m
 
- newtrodit [switches] [file]
+ newtrodit [switches] [file1] [file2] [file3]...
 
          --convertnull, -n Converts null characters to spaces.
          --converttab, -t  Converts tabs to spaces.
@@ -54,7 +54,7 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [38;2;207;50;68;4mUp[0m        = Go to the previous line
  [38;2;207;50;68;4mDown[0m      = Go to the next line
 
- [37;113;235;37;1mControl keybinds[0m
+ [37;113;235;37;1mControl keybindings[0m
 
  [38;2;207;50;68;4m^C[0m        = Copy line to clipboard
  [38;2;207;50;68;4m^D[0m        = Show line content (requires developer mode)
@@ -86,7 +86,7 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [38;2;207;50;68;4mS-^S[0m      = Save file as
  [38;2;207;50;68;4mS-^T[0m      = Toggle tab to spaces conversion
 
- [37;113;235;37;1mAlt keybinds[0m
+ [37;113;235;37;1mAlt keybindings[0m
 
  [38;2;207;50;68;4mA-Home[0m    = Go to the beginning of the first non-blank space
  [38;2;207;50;68;4mA-^L[0m      = Convert current line to lowercase
@@ -94,7 +94,7 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [38;2;207;50;68;4mA-^R[0m      = Encode/decode line using ROT13 algorithm
  [38;2;207;50;68;4mA-^U[0m      = Convert current line to uppercase
 
- [37;113;235;37;1mFunction keys keybinds[0m
+ [37;113;235;37;1mFunction keys keybindings[0m
 
  [38;2;207;50;68;4mF1[0m        = Shows help (manual)
  [38;2;207;50;68;4mF2[0m        = Renames current file (can also be used to move)
@@ -114,7 +114,7 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [38;2;207;50;68;4mA-F4[0m      = Same as [38;2;207;50;68;4m^X[0m (exits Newtrodit)
 
 
- [37;113;235;37;1mAdvanced keybinds[0m
+ [37;113;235;37;1mAdvanced keybindings[0m
 
   [37;113;235;37;1mLocate files ([0m[38;2;207;50;68;4mS-^L[0m[37;113;235;37;1m)[0m
   
@@ -160,33 +160,37 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
 
   [37;113;235;37;1mBoolean settings[0m
 
-  -[1m converttab[0m    = Toggle tab conversion from tabs to spaces. Boolean type.
-  -[1m convertnull[0m   = Toggle null character conversion to spaces. Boolean type.
-  -[1m curinsert[0m     = Toggle cursor size change in insert mode. Boolean type.
-  -[1m devmode[0m       = Toggle developer mode. Boolean type.
-  -[1m linecount[0m     = Toggle line count. Boolean type.
-  -[1m mouse[0m         = Toggle mouse support. Boolean type.
-  -[1m oldkeybinds[0m   = Toggle old keybind usage. Boolean type.
-  -[1m sigsegv[0m       = Toggle SIGSEGV handler. Boolean type.
-  -[1m syntax[0m        = Toggle syntax highlighting. Boolean type.
+  -[1m converttab[0m      = Toggle tab conversion from tabs to spaces. Boolean type.
+  -[1m convertnull[0m     = Toggle null character conversion to spaces. Boolean type.
+  -[1m curinsert[0m       = Toggle cursor size change in insert mode. Boolean type.
+  -[1m devmode[0m         = Toggle developer mode. Boolean type.
+  -[1m findinsensitive[0m = Toggle default case insensitive setting. Boolean type.
+  -[1m linecount[0m       = Toggle line count. Boolean type.
+  -[1m linehighlight[0m   = Toggle current line highlighting. Requires [1m linecount[0m to be enabled. Boolean type.
+  -[1m mouse[0m           = Toggle mouse support. Boolean type.
+  -[1m oldkeybindings[0m  = Toggle old keybindings usage. Boolean type.
+  -[1m sigsegv[0m         = Toggle SIGSEGV handler. Boolean type.
+  -[1m syntax[0m          = Toggle syntax highlighting. Boolean type.
+  -[1m wholeword[0m       = Toggle whole word matching.
 
   [37;113;235;37;1mInteger settings[0m
 
-  -[1m codepage[0m      = Console codepage. Integer type
-  -[1m cursize[0m       = Console cursor size. Integer type.
-  -[1m fontcolor[0m     = Font color. Integer type. The range of the integer is betwen 0 and 255.
-  -[1m linecountwide[0m = Line count width. Integer type.
-  -[1m menucolor[0m     = Menu color. Integer type. The range of the integer is betwen 0 and 255.
-  -[1m tabwide[0m       = Tab width. Integer type.
-  -[1m xsize[0m         = X size of the window (columns). Integer type.
-  -[1m ysize[0m         = Y size of the window (lines). Integer type.
+  -[1m codepage[0m        = Console codepage. Integer type
+  -[1m cursize[0m         = Console cursor size. Integer type.
+  -[1m fontcolor[0m       = Font color. Integer type. The range of the integer is betwen 0 and 255.
+  -[1m linecountwide[0m   = Line count width. Integer type.
+  -[1m menucolor[0m       = Menu color. Integer type. The range of the integer is betwen 0 and 255.
+  -[1m tabwide[0m         = Tab width. Integer type.
+  -[1m xsize[0m           = X size of the window (columns). Integer type.
+  -[1m ysize[0m           = Y size of the window (lines). Integer type.
 
   [37;113;235;37;1mString settings[0m
 
-  -[1m manfile[0m       = Name of the manual file. String type.
-  -[1m newline[0m       = New line, which will be added to the end of each line. String type.
+  -[1m macro[0m           = Macro to set. See the [1mMacro[0m section for further information.
+  -[1m manfile[0m         = Name of the manual file. String type.
+  -[1m newline[0m         = New line, which will be added to the end of each line. String type.
 
- [38;2;210;156;12;1mWARNING: Wrongly configuring settings cause unexpected behavior and major issues.[0m
+ [38;2;210;156;12;1mWARNING: Incorrectly configuring settings can cause unexpected behavior and major issues.[0m
 
  [38;2;255;255;160;1mExample of a settings file:[0m
 
@@ -195,10 +199,11 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [1m xsize=120[0m
  [1m ysize=30[0m
  [1m linecount=0[0m
- [1m tabwide=8[0m
+ [1m tabwide=4[0m
  [1m manfile=newtrodit.man[0m
  [1m linecountwide=3[0m
  [1m mouse=1[0m
+
 
  [1mSyntax highlighting[0m
 
@@ -223,14 +228,26 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [1m $$CAPITAL_COLOR[0m      = Color for the highlighted capital words. Requires [1m$$CAPITAL[0m to be set to '1'.
  [1m $$CAPITAL_MIN[0m        = Minimum length for capital words to be highlighted. Requires [1m$$CAPITAL[0m to be set to '1'.
 
- [1mOld keybinds[0m
+ [1mOld keybindings[0m
 
- Some keybinds can be changed using the[1m oldkeybinds[0m setting.
- Here's a list of the replaced keybinds:
+ Some keybindings can be changed using the [1moldkeybindings[0m setting.
+ Here's a list of the replaced keybindings:
 
  [38;2;207;50;68;4m^X[0m --> [38;2;207;50;68;4m^Q[0m (Quit Newtrodit)
  [38;2;207;50;68;4m^K[0m --> [38;2;207;50;68;4m^X[0m (Cut line)
+
+ If [1moldkeybindings[0m is enabled, both [38;2;207;50;68;4m^X[0m and [38;2;207;50;68;4m^Q[0m map to the same action (Quit Newtrodit)
  
+ [37;113;235;37;1mMultiple tabs[0m
+
+ The big new feature introduced in Newtrodit 0.6 are tabs. With this feature, you can open up to
+ $T files in the same Newtrodit process, by pressing [38;2;207;50;68;4m^N[0m
+
+ You can switch between tabs by pressing [38;2;207;50;68;4m^TAB[0m and [38;2;207;50;68;4mS-^TAB[0m
+ All settings are shared between tabs (e.g: disabling line count will disable it for all open files)
+
+ To close a tab, use [38;2;207;50;68;4m^W[0m or either [38;2;207;50;68;4m^F4[0m
+
  [37;113;235;37;1mDeveloper mode[0m
 
  Developer mode is a setting made for users who want to use test/debug features on Newtrodit.
@@ -239,7 +256,6 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
   - Displaying old and new console size ([38;2;207;50;68;4mF12[0m)
 
  To toggle developer mode, press '[38;2;207;50;68;4mS-^D[0m'
-
 
  [37;113;235;37;1mConfiguration priority[0m
 
@@ -261,7 +277,7 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [37;113;235;37;1mCrashes[0m
 
  As all programs, Newtrodit isn't perfect. If you find a bug, please report it on:
-  [1m$G/issues[0m
+ [1m$G/issues[0m
 
  Most common crash causes are:
   - Not enough memory available
@@ -274,8 +290,7 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
   - Memory/stack corruption
   - External program interferences (e.g. external programs that write memory to Newtrodit)
   
-  If you find a crash, please report it with all the information on the crash screen.
-  
+ If you find a crash, please report it with all the information on the crash screen.
 
  [37;113;235;37;1mInternal working[0m
 
@@ -300,10 +315,13 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
  [1mmanual.c[0m           : Manual
  [1mnewtrodit.c[0m        : Main source file
  [1mnewtrodit_core.h[0m   : All core functions
+ [1m  ~ win32/newtrodit_core_win.h[0m
+ [1m  ~ linux/newtrodit_core_linux.h[0m
  [1mnewtrodit_func.c[0m   : Main functions
+ [1m  ~ win32/newtrodit_func_win.c[0m
+ [1m  ~ linux/newtrodit_func_linux.c[0m
  [1mnewtrodit_gui.c[0m    : GUI loading
  [1mnewtrodit_syntax.h[0m : Syntax highlighting
-
 
  [37;113;235;37;1mLicense[0m
  
@@ -323,8 +341,10 @@ $NEWTRODIT_MANUAL # Newtrodit manual must begin with this line (manual magic num
    - Mathieu (Illegal-Services)   : Lots of feedback and testing.
    - Zackery Smith (ZackeryRSmith): Helped a lot while developing Newtrodit, creator of the Linux port 
 
- I would like to give special thanks to ZackeryRSmith, who helped a lot to Newtrodit development.
+ I would like to give special thanks to ZackeryRSmith, who helped a lot to Newtrodit development, and
+ specially by making Newtrodit-LCL, the Linux port of Newtrodit.
+
  Newtrodit $V
  Build date [$B]
 
- Feel free to contribute here: [4m$G[0m and [4m$L[0m
+ Feel free to contribute here: [4;1m$G[0m and [4;1m$L[0m
