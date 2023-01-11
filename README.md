@@ -35,6 +35,8 @@ Like any other programmer that has no motivation I started browsing Github. I re
 - Some file utilities:
    - File compare
    - File locating
+   - File type checking
+- Up to 48 files open at once
 
 # Requirements
 Newtrodit doesn't need any special requirements for Windows. It can run on Windows versions starting from Windows XP to Windows 11. 
@@ -94,4 +96,4 @@ Thanks to all the contributers who helped make Newtrodit possible! ❤️
 
 <hr>
 
-###### Copyright &copy; 2022 anic17 Software
+###### Copyright &copy; 2023 anic17 Software
