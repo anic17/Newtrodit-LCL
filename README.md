@@ -96,4 +96,4 @@ Thanks to all the contributers who helped make Newtrodit possible! ❤️
 
 <hr>
 
-###### Copyright &copy; 2023 anic17 Software
+**Copyright &copy; 2025 anic17 Software**
